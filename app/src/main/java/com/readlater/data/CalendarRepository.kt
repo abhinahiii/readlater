@@ -75,4 +75,82 @@ class CalendarRepository(private val context: Context) {
             Result.failure(e)
         }
     }
+
+    suspend fun deleteEvent(
+        account: GoogleSignInAccount,
+        eventId: String
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val service = getCalendarService(account)
+            service.events()
+                .delete("primary", eventId)
+                .execute()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateEvent(
+        account: GoogleSignInAccount,
+        eventId: String,
+        newStartDateTime: LocalDateTime,
+        durationMinutes: Int
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val service = getCalendarService(account)
+
+            // Get existing event first
+            val existingEvent = service.events()
+                .get("primary", eventId)
+                .execute()
+
+            val startInstant = newStartDateTime
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+            val endInstant = newStartDateTime
+                .plusMinutes(durationMinutes.toLong())
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+
+            existingEvent.start = EventDateTime().apply {
+                dateTime = DateTime(Date.from(startInstant))
+                timeZone = ZoneId.systemDefault().id
+            }
+            existingEvent.end = EventDateTime().apply {
+                dateTime = DateTime(Date.from(endInstant))
+                timeZone = ZoneId.systemDefault().id
+            }
+
+            service.events()
+                .update("primary", eventId, existingEvent)
+                .execute()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getEvent(
+        account: GoogleSignInAccount,
+        eventId: String
+    ): Result<Event?> = withContext(Dispatchers.IO) {
+        try {
+            val service = getCalendarService(account)
+            val event = service.events()
+                .get("primary", eventId)
+                .execute()
+            Result.success(event)
+        } catch (e: com.google.api.client.googleapis.json.GoogleJsonResponseException) {
+            // Event not found (404)
+            if (e.statusCode == 404) {
+                Result.success(null)
+            } else {
+                Result.failure(e)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

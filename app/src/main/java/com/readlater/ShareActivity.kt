@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.readlater.data.AuthRepository
 import com.readlater.data.AuthState
 import com.readlater.data.CalendarRepository
+import com.readlater.data.EventRepository
 import com.readlater.ui.screens.NotConnectedOverlay
 import com.readlater.ui.screens.ShareOverlayContent
 import com.readlater.ui.theme.ReadLaterTheme
@@ -39,6 +40,7 @@ class ShareActivity : ComponentActivity() {
 
     private lateinit var authRepository: AuthRepository
     private lateinit var calendarRepository: CalendarRepository
+    private lateinit var eventRepository: EventRepository
 
     private fun getDeviceDate(): LocalDate {
         val calendar = Calendar.getInstance()
@@ -68,6 +70,7 @@ class ShareActivity : ComponentActivity() {
 
         authRepository = AuthRepository(applicationContext)
         calendarRepository = CalendarRepository(applicationContext)
+        eventRepository = EventRepository(applicationContext, calendarRepository)
 
         val sharedText = intent?.getStringExtra(Intent.EXTRA_TEXT) ?: ""
         val sharedUrl = UrlMetadataFetcher.extractUrl(sharedText) ?: sharedText
@@ -151,7 +154,15 @@ class ShareActivity : ComponentActivity() {
                                                 startDateTime = dateTime,
                                                 durationMinutes = selectedDuration
                                             )
-                                            result.onSuccess {
+                                            result.onSuccess { eventId ->
+                                                // Save to local database
+                                                eventRepository.saveEvent(
+                                                    googleEventId = eventId,
+                                                    title = title,
+                                                    url = sharedUrl,
+                                                    scheduledDateTime = dateTime,
+                                                    durationMinutes = selectedDuration
+                                                )
                                                 Toast.makeText(
                                                     this@ShareActivity,
                                                     "Event created",
