@@ -22,10 +22,9 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,8 +34,10 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -48,7 +49,11 @@ import androidx.compose.ui.unit.dp
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.readlater.data.AuthState
 import com.readlater.data.SavedEvent
-import com.readlater.ui.components.EventListSection
+import com.readlater.ui.components.ArchiveConfirmationDialog
+import com.readlater.ui.components.ArchivedEventCard
+import com.readlater.ui.components.CompletedEventCard
+import com.readlater.ui.components.DeleteConfirmationDialog
+import com.readlater.ui.components.EventCard
 import com.readlater.ui.components.MetroButton
 import kotlinx.coroutines.launch
 
@@ -56,15 +61,19 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     authState: AuthState,
     upcomingEvents: List<SavedEvent>,
-    pastEvents: List<SavedEvent>,
-    isLoading: Boolean,
+    completedEvents: List<SavedEvent>,
+    archivedEvents: List<SavedEvent>,
+    summaryMessage: String,
     isSyncing: Boolean,
     onConnectClick: () -> Unit,
     onDisconnectClick: () -> Unit,
-    onCancelEvent: (SavedEvent) -> Unit,
+    onArchiveEvent: (SavedEvent) -> Unit,
     onRescheduleEvent: (SavedEvent) -> Unit,
+    onMarkDoneEvent: (SavedEvent) -> Unit,
+    onUndoCompleteEvent: (SavedEvent) -> Unit,
     onScheduleAgainEvent: (SavedEvent) -> Unit,
-    onSettingsClick: () -> Unit = {},
+    onRestoreEvent: (SavedEvent) -> Unit,
+    onDeleteForeverEvent: (SavedEvent) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -85,12 +94,17 @@ fun HomeScreen(
             AuthenticatedHomeScreen(
                 account = authState.account,
                 upcomingEvents = upcomingEvents,
-                pastEvents = pastEvents,
+                completedEvents = completedEvents,
+                archivedEvents = archivedEvents,
+                summaryMessage = summaryMessage,
                 isSyncing = isSyncing,
-                onSettingsClick = onSettingsClick,
-                onCancelEvent = onCancelEvent,
+                onArchiveEvent = onArchiveEvent,
                 onRescheduleEvent = onRescheduleEvent,
+                onMarkDoneEvent = onMarkDoneEvent,
+                onUndoCompleteEvent = onUndoCompleteEvent,
                 onScheduleAgainEvent = onScheduleAgainEvent,
+                onRestoreEvent = onRestoreEvent,
+                onDeleteForeverEvent = onDeleteForeverEvent,
                 onUrlClick = { url ->
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                     context.startActivity(intent)
@@ -235,104 +249,247 @@ private fun ErrorScreen(
 private fun AuthenticatedHomeScreen(
     account: GoogleSignInAccount,
     upcomingEvents: List<SavedEvent>,
-    pastEvents: List<SavedEvent>,
+    completedEvents: List<SavedEvent>,
+    archivedEvents: List<SavedEvent>,
+    summaryMessage: String,
     isSyncing: Boolean,
-    onSettingsClick: () -> Unit,
-    onCancelEvent: (SavedEvent) -> Unit,
+    onArchiveEvent: (SavedEvent) -> Unit,
     onRescheduleEvent: (SavedEvent) -> Unit,
+    onMarkDoneEvent: (SavedEvent) -> Unit,
+    onUndoCompleteEvent: (SavedEvent) -> Unit,
     onScheduleAgainEvent: (SavedEvent) -> Unit,
+    onRestoreEvent: (SavedEvent) -> Unit,
+    onDeleteForeverEvent: (SavedEvent) -> Unit,
     onUrlClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var selectedBottomTab by remember { mutableIntStateOf(0) }
+    var showArchiveScreen by remember { mutableStateOf(false) }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
-            BottomNavigationBar(
-                selectedTab = selectedBottomTab,
-                onTabSelected = { selectedBottomTab = it }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            // Header
-            HeaderSection(
-                account = account,
-                isSyncing = isSyncing,
-                onSettingsClick = onSettingsClick
-            )
+    // Archive confirmation dialog state
+    var showArchiveConfirmation by remember { mutableStateOf(false) }
+    var eventToArchive by remember { mutableStateOf<SavedEvent?>(null) }
 
-            // Main content based on selected bottom tab
-            when (selectedBottomTab) {
-                0 -> EventsContent(
-                    upcomingEvents = upcomingEvents,
-                    pastEvents = pastEvents,
-                    onCancelEvent = onCancelEvent,
-                    onRescheduleEvent = onRescheduleEvent,
-                    onScheduleAgainEvent = onScheduleAgainEvent,
-                    onUrlClick = onUrlClick
+    // Delete confirmation dialog state
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var eventToDelete by remember { mutableStateOf<SavedEvent?>(null) }
+
+    if (showArchiveScreen) {
+        ArchiveScreen(
+            archivedEvents = archivedEvents,
+            onBackClick = { showArchiveScreen = false },
+            onRestoreClick = onRestoreEvent,
+            onDeleteForeverClick = { event ->
+                eventToDelete = event
+                showDeleteConfirmation = true
+            },
+            onUrlClick = onUrlClick
+        )
+    } else {
+        Scaffold(
+            modifier = modifier.fillMaxSize(),
+            containerColor = MaterialTheme.colorScheme.background,
+            bottomBar = {
+                BottomNavigationBar(
+                    selectedTab = selectedBottomTab,
+                    onTabSelected = { selectedBottomTab = it }
                 )
-                1 -> AnalyticsContent()
+            }
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                // Header
+                HeaderSection(
+                    account = account,
+                    summaryMessage = summaryMessage,
+                    isSyncing = isSyncing,
+                    onArchiveClick = { showArchiveScreen = true }
+                )
+
+                // Main content based on selected bottom tab
+                when (selectedBottomTab) {
+                    0 -> EventsContent(
+                        upcomingEvents = upcomingEvents,
+                        completedEvents = completedEvents,
+                        onArchiveEvent = { event ->
+                            eventToArchive = event
+                            showArchiveConfirmation = true
+                        },
+                        onRescheduleEvent = onRescheduleEvent,
+                        onMarkDoneEvent = onMarkDoneEvent,
+                        onUndoCompleteEvent = onUndoCompleteEvent,
+                        onScheduleAgainEvent = onScheduleAgainEvent,
+                        onUrlClick = onUrlClick
+                    )
+                    1 -> AnalyticsContent()
+                }
             }
         }
+    }
+
+    // Archive confirmation dialog
+    if (showArchiveConfirmation && eventToArchive != null) {
+        ArchiveConfirmationDialog(
+            eventTitle = eventToArchive!!.title,
+            onDismiss = {
+                showArchiveConfirmation = false
+                eventToArchive = null
+            },
+            onConfirm = {
+                onArchiveEvent(eventToArchive!!)
+                showArchiveConfirmation = false
+                eventToArchive = null
+            }
+        )
+    }
+
+    // Delete confirmation dialog
+    if (showDeleteConfirmation && eventToDelete != null) {
+        DeleteConfirmationDialog(
+            eventTitle = eventToDelete!!.title,
+            onDismiss = {
+                showDeleteConfirmation = false
+                eventToDelete = null
+            },
+            onConfirm = {
+                onDeleteForeverEvent(eventToDelete!!)
+                showDeleteConfirmation = false
+                eventToDelete = null
+            }
+        )
     }
 }
 
 @Composable
 private fun HeaderSection(
     account: GoogleSignInAccount,
+    summaryMessage: String,
     isSyncing: Boolean,
-    onSettingsClick: () -> Unit
+    onArchiveClick: () -> Unit
 ) {
     val firstName = account.givenName ?: account.displayName?.split(" ")?.firstOrNull() ?: "there"
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
-        // Greeting
-        Text(
-            text = "hey $firstName".lowercase(),
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        // Icons row
         Row(
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
         ) {
-            if (isSyncing) {
+            // Left side: Greeting and summary
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "syncing",
-                    style = MaterialTheme.typography.labelSmall,
+                    text = "hey ${firstName.lowercase()}",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = summaryMessage,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.width(8.dp))
             }
 
-            IconButton(onClick = onSettingsClick) {
-                Icon(
-                    imageVector = Icons.Outlined.Settings,
-                    contentDescription = "Settings",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+            // Right side: Archive button and connection status
+            Column(
+                horizontalAlignment = Alignment.End
+            ) {
+                Text(
+                    text = "archive",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable { onArchiveClick() }
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = if (isSyncing) "syncing..." else "connected",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isSyncing) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
                 )
             }
+        }
+    }
+}
 
-            Icon(
-                imageVector = Icons.Outlined.Check,
-                contentDescription = "Connected",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
+@Composable
+private fun ArchiveScreen(
+    archivedEvents: List<SavedEvent>,
+    onBackClick: () -> Unit,
+    onRestoreClick: (SavedEvent) -> Unit,
+    onDeleteForeverClick: (SavedEvent) -> Unit,
+    onUrlClick: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
+            }
+            Text(
+                text = "archive",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground
             )
+        }
+
+        // Content
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp)
+        ) {
+            if (archivedEvents.isEmpty()) {
+                Spacer(modifier = Modifier.height(48.dp))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "no archived events",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "events you archive will appear here.\nyou can restore them anytime.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                archivedEvents.forEach { event ->
+                    ArchivedEventCard(
+                        event = event,
+                        onRestoreClick = { onRestoreClick(event) },
+                        onDeleteForeverClick = { onDeleteForeverClick(event) },
+                        onUrlClick = { onUrlClick(event.url) }
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+            }
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
@@ -341,14 +498,25 @@ private fun HeaderSection(
 @Composable
 private fun EventsContent(
     upcomingEvents: List<SavedEvent>,
-    pastEvents: List<SavedEvent>,
-    onCancelEvent: (SavedEvent) -> Unit,
+    completedEvents: List<SavedEvent>,
+    onArchiveEvent: (SavedEvent) -> Unit,
     onRescheduleEvent: (SavedEvent) -> Unit,
+    onMarkDoneEvent: (SavedEvent) -> Unit,
+    onUndoCompleteEvent: (SavedEvent) -> Unit,
     onScheduleAgainEvent: (SavedEvent) -> Unit,
     onUrlClick: (String) -> Unit
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
     val scope = rememberCoroutineScope()
+
+    // Sort upcoming events: overdue first, then by scheduled time
+    val sortedUpcomingEvents = remember(upcomingEvents) {
+        val currentTime = System.currentTimeMillis()
+        upcomingEvents.sortedWith(compareBy(
+            { it.scheduledDateTime >= currentTime }, // false (overdue) comes first
+            { it.scheduledDateTime }
+        ))
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Section tabs
@@ -360,12 +528,14 @@ private fun EventsContent(
         ) {
             SectionTab(
                 text = "upcoming",
+                count = upcomingEvents.size,
                 selected = pagerState.currentPage == 0,
                 onClick = { scope.launch { pagerState.animateScrollToPage(0) } }
             )
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(24.dp))
             SectionTab(
-                text = "past",
+                text = "completed",
+                count = completedEvents.size,
                 selected = pagerState.currentPage == 1,
                 onClick = { scope.launch { pagerState.animateScrollToPage(1) } }
             )
@@ -386,31 +556,47 @@ private fun EventsContent(
             ) {
                 when (page) {
                     0 -> {
-                        EventListSection(
-                            title = "",
-                            events = upcomingEvents,
-                            isUpcoming = true,
-                            onCancelClick = onCancelEvent,
-                            onRescheduleClick = onRescheduleEvent,
-                            onScheduleAgainClick = { },
-                            onUrlClick = onUrlClick
-                        )
-
-                        // How to use tip when no events
-                        if (upcomingEvents.isEmpty() && pastEvents.isEmpty()) {
+                        // Upcoming events
+                        if (sortedUpcomingEvents.isEmpty()) {
+                            Text(
+                                text = "no upcoming events",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
                             HowToUseTip()
+                        } else {
+                            sortedUpcomingEvents.forEach { event ->
+                                EventCard(
+                                    event = event,
+                                    onArchiveClick = { onArchiveEvent(event) },
+                                    onRescheduleClick = { onRescheduleEvent(event) },
+                                    onDoneClick = { onMarkDoneEvent(event) },
+                                    onUrlClick = { onUrlClick(event.url) }
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
                         }
                     }
                     1 -> {
-                        EventListSection(
-                            title = "",
-                            events = pastEvents,
-                            isUpcoming = false,
-                            onCancelClick = { },
-                            onRescheduleClick = { },
-                            onScheduleAgainClick = onScheduleAgainEvent,
-                            onUrlClick = onUrlClick
-                        )
+                        // Completed events
+                        if (completedEvents.isEmpty()) {
+                            Text(
+                                text = "no completed events",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            completedEvents.forEach { event ->
+                                CompletedEventCard(
+                                    event = event,
+                                    onUndoClick = { onUndoCompleteEvent(event) },
+                                    onScheduleAgainClick = { onScheduleAgainEvent(event) },
+                                    onUrlClick = { onUrlClick(event.url) }
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
+                        }
                     }
                 }
 
@@ -423,21 +609,34 @@ private fun EventsContent(
 @Composable
 private fun SectionTab(
     text: String,
+    count: Int,
     selected: Boolean,
     onClick: () -> Unit
 ) {
     Column(
         modifier = Modifier.clickable(onClick = onClick)
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.titleMedium,
-            color = if (selected) {
-                MaterialTheme.colorScheme.onBackground
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.titleMedium,
+                color = if (selected) {
+                    MaterialTheme.colorScheme.onBackground
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            )
+            if (count > 0) {
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "($count)",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-        )
+        }
         if (selected) {
             Spacer(modifier = Modifier.height(4.dp))
             Box(
@@ -454,8 +653,6 @@ private fun SectionTab(
 
 @Composable
 private fun HowToUseTip() {
-    Spacer(modifier = Modifier.height(24.dp))
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -470,7 +667,7 @@ private fun HowToUseTip() {
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "1. find an article or video\n2. tap share\n3. select readlater\n4. pick a date and time\n5. event created on your calendar",
+                text = "1. find an article or video\n2. tap share\n3. select readlater\n4. pick a date and time\n5. event added to your calendar",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.5
@@ -568,27 +765,4 @@ private fun BottomNavigationBar(
             )
         )
     }
-}
-
-// Keep SetupScreen as an alias for backward compatibility
-@Composable
-fun SetupScreen(
-    authState: AuthState,
-    onConnectClick: () -> Unit,
-    onDisconnectClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    HomeScreen(
-        authState = authState,
-        upcomingEvents = emptyList(),
-        pastEvents = emptyList(),
-        isLoading = false,
-        isSyncing = false,
-        onConnectClick = onConnectClick,
-        onDisconnectClick = onDisconnectClick,
-        onCancelEvent = {},
-        onRescheduleEvent = {},
-        onScheduleAgainEvent = {},
-        modifier = modifier
-    )
 }

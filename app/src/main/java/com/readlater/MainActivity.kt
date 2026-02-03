@@ -35,7 +35,6 @@ class MainActivity : ComponentActivity() {
     private val signInLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        // Always handle the result - Google Sign-In doesn't always return RESULT_OK
         authRepository.handleSignInResult(result.data)
     }
 
@@ -53,7 +52,11 @@ class MainActivity : ComponentActivity() {
 
                 // Event lists
                 val upcomingEvents by eventRepository.getUpcomingEvents().collectAsState(initial = emptyList())
-                val pastEvents by eventRepository.getPastEvents().collectAsState(initial = emptyList())
+                val completedEvents by eventRepository.getCompletedEvents().collectAsState(initial = emptyList())
+                val archivedEvents by eventRepository.getArchivedEvents().collectAsState(initial = emptyList())
+
+                // Summary message
+                var summaryMessage by remember { mutableStateOf("") }
 
                 // Loading/syncing states
                 var isSyncing by remember { mutableStateOf(false) }
@@ -64,6 +67,13 @@ class MainActivity : ComponentActivity() {
                 var selectedEventForReschedule by remember { mutableStateOf<SavedEvent?>(null) }
                 var isScheduleAgain by remember { mutableStateOf(false) }
 
+                // Update summary message when events change
+                LaunchedEffect(upcomingEvents, authState) {
+                    if (authState is AuthState.Authenticated) {
+                        summaryMessage = eventRepository.getSummaryMessage()
+                    }
+                }
+
                 // Sync when authenticated
                 LaunchedEffect(authState) {
                     if (authState is AuthState.Authenticated) {
@@ -72,8 +82,9 @@ class MainActivity : ComponentActivity() {
                             isSyncing = true
                             try {
                                 eventRepository.syncWithCalendar(account)
+                                summaryMessage = eventRepository.getSummaryMessage()
                             } catch (e: Exception) {
-                                // Silently fail sync - events will still show from local DB
+                                // Silently fail sync
                             }
                             isSyncing = false
                         }
@@ -83,8 +94,9 @@ class MainActivity : ComponentActivity() {
                 HomeScreen(
                     authState = authState,
                     upcomingEvents = upcomingEvents,
-                    pastEvents = pastEvents,
-                    isLoading = isLoading,
+                    completedEvents = completedEvents,
+                    archivedEvents = archivedEvents,
+                    summaryMessage = summaryMessage,
                     isSyncing = isSyncing,
                     onConnectClick = {
                         signInLauncher.launch(authRepository.getSignInIntent())
@@ -99,23 +111,17 @@ class MainActivity : ComponentActivity() {
                             ).show()
                         }
                     },
-                    onSettingsClick = {
-                        Toast.makeText(
-                            this@MainActivity,
-                            "Settings coming soon",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    },
-                    onCancelEvent = { event ->
+                    onArchiveEvent = { event ->
                         scope.launch {
                             isLoading = true
                             val account = authRepository.getAccount()
                             if (account != null) {
-                                val result = eventRepository.cancelEvent(account, event.googleEventId)
+                                val result = eventRepository.archiveEvent(account, event.googleEventId)
                                 result.onSuccess {
+                                    summaryMessage = eventRepository.getSummaryMessage()
                                     Toast.makeText(
                                         this@MainActivity,
-                                        "Event cancelled",
+                                        "Event archived",
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }.onFailure { error ->
@@ -134,10 +140,96 @@ class MainActivity : ComponentActivity() {
                         isScheduleAgain = false
                         showRescheduleDialog = true
                     },
+                    onMarkDoneEvent = { event ->
+                        scope.launch {
+                            isLoading = true
+                            val result = eventRepository.markAsCompleted(event.googleEventId)
+                            result.onSuccess {
+                                summaryMessage = eventRepository.getSummaryMessage()
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    "Marked as done",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }.onFailure { error ->
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    "Failed: ${error.message}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                            isLoading = false
+                        }
+                    },
+                    onUndoCompleteEvent = { event ->
+                        scope.launch {
+                            isLoading = true
+                            val result = eventRepository.undoComplete(event.googleEventId)
+                            result.onSuccess {
+                                summaryMessage = eventRepository.getSummaryMessage()
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    "Moved back to upcoming",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }.onFailure { error ->
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    "Failed: ${error.message}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                            isLoading = false
+                        }
+                    },
                     onScheduleAgainEvent = { event ->
                         selectedEventForReschedule = event
                         isScheduleAgain = true
                         showRescheduleDialog = true
+                    },
+                    onRestoreEvent = { event ->
+                        scope.launch {
+                            isLoading = true
+                            val account = authRepository.getAccount()
+                            if (account != null) {
+                                val result = eventRepository.restoreFromArchive(account, event)
+                                result.onSuccess {
+                                    summaryMessage = eventRepository.getSummaryMessage()
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        "Event restored",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }.onFailure { error ->
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        "Failed: ${error.message}",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            }
+                            isLoading = false
+                        }
+                    },
+                    onDeleteForeverEvent = { event ->
+                        scope.launch {
+                            isLoading = true
+                            val result = eventRepository.deleteEventPermanently(event.googleEventId)
+                            result.onSuccess {
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    "Event deleted",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }.onFailure { error ->
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    "Failed: ${error.message}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                            isLoading = false
+                        }
                     }
                 )
 
@@ -179,6 +271,7 @@ class MainActivity : ComponentActivity() {
                                             durationMinutes = newDuration
                                         )
                                         result.onSuccess {
+                                            summaryMessage = eventRepository.getSummaryMessage()
                                             Toast.makeText(
                                                 this@MainActivity,
                                                 "Event scheduled",
@@ -199,6 +292,7 @@ class MainActivity : ComponentActivity() {
                                             durationMinutes = newDuration
                                         )
                                         result.onSuccess {
+                                            summaryMessage = eventRepository.getSummaryMessage()
                                             Toast.makeText(
                                                 this@MainActivity,
                                                 "Event rescheduled",
