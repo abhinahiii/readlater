@@ -17,6 +17,7 @@ import com.readlater.data.AuthState
 import com.readlater.data.CalendarRepository
 import com.readlater.data.EventRepository
 import com.readlater.data.SavedEvent
+import com.readlater.data.ThemeRepository
 import com.readlater.ui.components.RescheduleDialog
 import com.readlater.ui.screens.HomeScreen
 import com.readlater.ui.theme.ReadLaterTheme
@@ -25,12 +26,14 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var authRepository: AuthRepository
     private lateinit var calendarRepository: CalendarRepository
     private lateinit var eventRepository: EventRepository
+    private lateinit var themeRepository: ThemeRepository
 
     private val signInLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -44,9 +47,12 @@ class MainActivity : ComponentActivity() {
         authRepository = AuthRepository(applicationContext)
         calendarRepository = CalendarRepository(applicationContext)
         eventRepository = EventRepository(applicationContext, calendarRepository)
+        themeRepository = ThemeRepository(applicationContext)
 
         setContent {
-            ReadLaterTheme {
+            val useDarkTheme by themeRepository.useDarkTheme.collectAsState(initial = true)
+
+            ReadLaterTheme(useDarkTheme = useDarkTheme) {
                 val authState by authRepository.authState.collectAsState()
                 val scope = rememberCoroutineScope()
 
@@ -91,13 +97,27 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                // Get user's first name
+                val userName = remember(authState) {
+                    if (authState is AuthState.Authenticated) {
+                        authRepository.getAccount()?.givenName?.lowercase() ?: ""
+                    } else ""
+                }
+
                 HomeScreen(
                     authState = authState,
+                    userName = userName,
                     upcomingEvents = upcomingEvents,
                     completedEvents = completedEvents,
                     archivedEvents = archivedEvents,
                     summaryMessage = summaryMessage,
                     isSyncing = isSyncing,
+                    useDarkTheme = useDarkTheme,
+                    onToggleTheme = {
+                        scope.launch {
+                            themeRepository.setUseDarkTheme(!useDarkTheme)
+                        }
+                    },
                     onConnectClick = {
                         signInLauncher.launch(authRepository.getSignInIntent())
                     },
@@ -106,7 +126,7 @@ class MainActivity : ComponentActivity() {
                             authRepository.signOut()
                             Toast.makeText(
                                 this@MainActivity,
-                                "Disconnected",
+                                "disconnected",
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -121,13 +141,13 @@ class MainActivity : ComponentActivity() {
                                     summaryMessage = eventRepository.getSummaryMessage()
                                     Toast.makeText(
                                         this@MainActivity,
-                                        "Event archived",
+                                        "event archived",
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }.onFailure { error ->
                                     Toast.makeText(
                                         this@MainActivity,
-                                        "Failed: ${error.message}",
+                                        "failed: ${error.message}".lowercase(Locale.ROOT),
                                         Toast.LENGTH_LONG
                                     ).show()
                                 }
@@ -148,13 +168,13 @@ class MainActivity : ComponentActivity() {
                                 summaryMessage = eventRepository.getSummaryMessage()
                                 Toast.makeText(
                                     this@MainActivity,
-                                    "Marked as done",
+                                    "marked as done",
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }.onFailure { error ->
                                 Toast.makeText(
                                     this@MainActivity,
-                                    "Failed: ${error.message}",
+                                    "failed: ${error.message}".lowercase(Locale.ROOT),
                                     Toast.LENGTH_LONG
                                 ).show()
                             }
@@ -169,13 +189,13 @@ class MainActivity : ComponentActivity() {
                                 summaryMessage = eventRepository.getSummaryMessage()
                                 Toast.makeText(
                                     this@MainActivity,
-                                    "Moved back to upcoming",
+                                    "moved back to upcoming",
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }.onFailure { error ->
                                 Toast.makeText(
                                     this@MainActivity,
-                                    "Failed: ${error.message}",
+                                    "failed: ${error.message}".lowercase(Locale.ROOT),
                                     Toast.LENGTH_LONG
                                 ).show()
                             }
@@ -197,13 +217,13 @@ class MainActivity : ComponentActivity() {
                                     summaryMessage = eventRepository.getSummaryMessage()
                                     Toast.makeText(
                                         this@MainActivity,
-                                        "Event restored",
+                                        "event restored",
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }.onFailure { error ->
                                     Toast.makeText(
                                         this@MainActivity,
-                                        "Failed: ${error.message}",
+                                        "failed: ${error.message}".lowercase(Locale.ROOT),
                                         Toast.LENGTH_LONG
                                     ).show()
                                 }
@@ -218,13 +238,13 @@ class MainActivity : ComponentActivity() {
                             result.onSuccess {
                                 Toast.makeText(
                                     this@MainActivity,
-                                    "Event deleted",
+                                    "event deleted",
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }.onFailure { error ->
                                 Toast.makeText(
                                     this@MainActivity,
-                                    "Failed: ${error.message}",
+                                    "failed: ${error.message}".lowercase(Locale.ROOT),
                                     Toast.LENGTH_LONG
                                 ).show()
                             }
@@ -249,7 +269,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     RescheduleDialog(
-                        title = if (isScheduleAgain) "Schedule Again" else "Reschedule",
+                        title = if (isScheduleAgain) "schedule again" else "reschedule",
                         initialDate = defaultDate,
                         initialTime = defaultTime,
                         initialDuration = event.durationMinutes,
@@ -274,13 +294,13 @@ class MainActivity : ComponentActivity() {
                                             summaryMessage = eventRepository.getSummaryMessage()
                                             Toast.makeText(
                                                 this@MainActivity,
-                                                "Event scheduled",
+                                                "event scheduled",
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         }.onFailure { error ->
                                             Toast.makeText(
                                                 this@MainActivity,
-                                                "Failed: ${error.message}",
+                                                "failed: ${error.message}".lowercase(Locale.ROOT),
                                                 Toast.LENGTH_LONG
                                             ).show()
                                         }
@@ -295,13 +315,13 @@ class MainActivity : ComponentActivity() {
                                             summaryMessage = eventRepository.getSummaryMessage()
                                             Toast.makeText(
                                                 this@MainActivity,
-                                                "Event rescheduled",
+                                                "event rescheduled",
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         }.onFailure { error ->
                                             Toast.makeText(
                                                 this@MainActivity,
-                                                "Failed: ${error.message}",
+                                                "failed: ${error.message}".lowercase(Locale.ROOT),
                                                 Toast.LENGTH_LONG
                                             ).show()
                                         }

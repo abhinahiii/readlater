@@ -2,7 +2,22 @@
 
 i bookmark a lot of articles and videos but i forget to watch or read them.
 
-so, i am designing an app that lets me share articles or videos directly into it, and it automatically creates a google calendar event so i stay reminded.
+so, i built an app that lets me share articles or videos directly into it, and it automatically creates a google calendar event so i stay reminded.
+
+## features
+
+- **share to schedule** — share any link from any app, pick a time, and it's on your calendar
+- **smart home screen** — see your upcoming items, what's overdue, and a friendly greeting
+- **event management** — mark items as done, reschedule, or archive them
+- **calendar sync** — stays in sync with google calendar, so if you delete an event there, it updates here
+- **minimal design** — clean, light interface inspired by metro ui
+
+## how it works
+
+1. share a link to readlater from any app (browser, twitter, youtube, etc.)
+2. pick when you want to read/watch it
+3. readlater creates a calendar event with the link
+4. when the time comes, your calendar reminds you
 
 ## setup
 
@@ -51,32 +66,60 @@ the apk will be at `app/build/outputs/apk/debug/app-debug.apk`
 2. open readlater and tap "connect google calendar"
 3. sign in with your google account
 4. grant calendar permissions
-5. now share any link to readlater from any app
+5. share any link to readlater from any app
 
 ## project structure
 
 ```
 readlater/
 ├── app/src/main/java/com/readlater/
-│   ├── MainActivity.kt          # setup screen
-│   ├── ShareActivity.kt         # share overlay
-│   ├── ReadLaterApp.kt          # application class
+│   ├── MainActivity.kt              # home screen host
+│   ├── ShareActivity.kt             # share overlay
+│   ├── ReadLaterApp.kt              # application class
 │   ├── ui/
-│   │   ├── theme/Theme.kt       # metro theme
-│   │   ├── components/          # reusable ui components
-│   │   └── screens/             # screen composables
+│   │   ├── theme/Theme.kt           # light theme, clean typography
+│   │   ├── components/
+│   │   │   ├── EventCard.kt         # event display cards
+│   │   │   ├── MetroButton.kt       # styled buttons
+│   │   │   ├── RescheduleDialog.kt  # date/time picker dialog
+│   │   │   └── ConfirmationDialogs.kt
+│   │   └── screens/
+│   │       ├── HomeScreen.kt        # main screen with tabs
+│   │       └── ShareOverlayScreen.kt
 │   ├── data/
-│   │   ├── AuthRepository.kt    # google auth
-│   │   └── CalendarRepository.kt # calendar api
+│   │   ├── AuthRepository.kt        # google sign-in
+│   │   ├── CalendarRepository.kt    # google calendar api
+│   │   ├── EventRepository.kt       # local + remote sync
+│   │   ├── SavedEvent.kt            # event entity
+│   │   ├── SavedEventDao.kt         # room dao
+│   │   └── AppDatabase.kt           # room database
 │   └── util/
-│       └── UrlMetadataFetcher.kt # url title fetching
+│       └── UrlMetadataFetcher.kt    # url title fetching
 └── app/src/main/AndroidManifest.xml
 ```
 
 ## tech stack
 
 - kotlin + jetpack compose
+- room database (local event storage)
 - google sign-in sdk
 - google calendar api
-- jsoup (html parsing)
-- material 3 (metro style)
+- jsoup (html parsing for link titles)
+- material 3
+
+## screens
+
+### onboarding
+connect your google calendar to get started.
+
+### home
+- **upcoming** — events you've scheduled, sorted by date
+- **done** — items you've marked as complete
+- **archived** — items you've archived (can restore or delete)
+
+### share overlay
+appears when you share a link. pick title, date, time, and duration.
+
+## license
+
+mit

@@ -27,6 +27,16 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+private fun formatDuration(minutes: Int): String {
+    return when {
+        minutes < 60 -> "${minutes} min"
+        minutes == 60 -> "1 hr"
+        minutes % 60 == 0 -> "${minutes / 60} hrs"
+        minutes < 120 -> "1 hr ${minutes % 60} min"
+        else -> "${minutes / 60} hrs ${minutes % 60} min"
+    }
+}
+
 @Composable
 fun EventCard(
     event: SavedEvent,
@@ -42,18 +52,15 @@ fun EventCard(
 
     val today = LocalDate.now()
     val eventDate = dateTime.toLocalDate()
-    val isToday = eventDate == today
     val isOverdue = event.scheduledDateTime < System.currentTimeMillis()
 
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM d")
-    val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
-
-    val dateText = when {
-        isToday -> "today"
-        eventDate == today.minusDays(1) -> "yesterday"
-        eventDate == today.plusDays(1) -> "tomorrow"
-        else -> dateTime.format(dateFormatter).lowercase()
+    val dateText = when (eventDate) {
+        today -> "today"
+        today.minusDays(1) -> "yesterday"
+        today.plusDays(1) -> "tomorrow"
+        else -> dateTime.format(DateTimeFormatter.ofPattern("MMM d")).lowercase()
     }
+    val timeText = dateTime.format(DateTimeFormatter.ofPattern("h:mm a")).lowercase()
 
     Surface(
         modifier = modifier
@@ -67,9 +74,8 @@ fun EventCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Title
             Text(
-                text = event.title.ifBlank { "Untitled" },
+                text = event.title.ifBlank { "untitled" }.lowercase(),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
@@ -78,10 +84,9 @@ fun EventCard(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // URL (clickable)
             Text(
-                text = event.url,
-                style = MaterialTheme.typography.bodyMedium,
+                text = event.url.lowercase(),
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -90,81 +95,34 @@ fun EventCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Date and time
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = dateText,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = " · ",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = dateTime.format(timeFormatter).lowercase(),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = " · ",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "${event.durationMinutes}m",
+                    text = "$dateText · $timeText · ${formatDuration(event.durationMinutes)}",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            // Overdue indicator
             if (isOverdue && event.status == EventStatus.SCHEDULED) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = "overdue",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error
                 )
             }
 
-            // Deleted from calendar indicator
-            if (event.status == EventStatus.DELETED_FROM_CALENDAR) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "deleted from calendar",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
+            Spacer(modifier = Modifier.height(14.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Action buttons: archive, reschedule, done
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                SmallMetroButton(
-                    text = "archive",
-                    onClick = onArchiveClick,
-                    filled = false
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                SmallMetroButton(
-                    text = "reschedule",
-                    onClick = onRescheduleClick,
-                    filled = false
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                SmallMetroButton(
-                    text = "done",
-                    onClick = onDoneClick,
-                    filled = true
-                )
+                TextAction(text = "archive", onClick = onArchiveClick)
+                Spacer(modifier = Modifier.width(16.dp))
+                TextAction(text = "reschedule", onClick = onRescheduleClick)
+                Spacer(modifier = Modifier.width(16.dp))
+                TextAction(text = "done", onClick = onDoneClick, primary = true)
             }
         }
     }
@@ -179,20 +137,14 @@ fun CompletedEventCard(
     modifier: Modifier = Modifier
 ) {
     val completedAt = event.completedAt?.let {
-        Instant.ofEpochMilli(it)
-            .atZone(ZoneId.systemDefault())
-            .toLocalDate()
+        Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
     }
-
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM d")
-    val completedText = completedAt?.let {
-        val today = LocalDate.now()
-        when (it) {
-            today -> "completed today"
-            today.minusDays(1) -> "completed yesterday"
-            else -> "completed ${it.format(dateFormatter).lowercase()}"
-        }
-    } ?: "completed"
+    val today = LocalDate.now()
+    val completedText = when (completedAt) {
+        today -> "completed today"
+        today.minusDays(1) -> "completed yesterday"
+        else -> completedAt?.let { "completed ${it.format(DateTimeFormatter.ofPattern("MMM d")).lowercase()}" } ?: "completed"
+    }
 
     Surface(
         modifier = modifier
@@ -206,9 +158,8 @@ fun CompletedEventCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Title
             Text(
-                text = event.title.ifBlank { "Untitled" },
+                text = event.title.ifBlank { "untitled" }.lowercase(),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
@@ -217,10 +168,9 @@ fun CompletedEventCard(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // URL (clickable)
             Text(
-                text = event.url,
-                style = MaterialTheme.typography.bodyMedium,
+                text = event.url.lowercase(),
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -229,31 +179,21 @@ fun CompletedEventCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Completed date
             Text(
-                text = "✓ $completedText",
+                text = completedText,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Action buttons: undo, schedule again
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                SmallMetroButton(
-                    text = "undo",
-                    onClick = onUndoClick,
-                    filled = false
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                SmallMetroButton(
-                    text = "schedule again",
-                    onClick = onScheduleAgainClick,
-                    filled = true
-                )
+                TextAction(text = "undo", onClick = onUndoClick)
+                Spacer(modifier = Modifier.width(16.dp))
+                TextAction(text = "schedule again", onClick = onScheduleAgainClick, primary = true)
             }
         }
     }
@@ -268,20 +208,14 @@ fun ArchivedEventCard(
     modifier: Modifier = Modifier
 ) {
     val archivedAt = event.archivedAt?.let {
-        Instant.ofEpochMilli(it)
-            .atZone(ZoneId.systemDefault())
-            .toLocalDate()
+        Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
     }
-
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM d")
-    val archivedText = archivedAt?.let {
-        val today = LocalDate.now()
-        when (it) {
-            today -> "archived today"
-            today.minusDays(1) -> "archived yesterday"
-            else -> "archived ${it.format(dateFormatter).lowercase()}"
-        }
-    } ?: "archived"
+    val today = LocalDate.now()
+    val archivedText = when (archivedAt) {
+        today -> "archived today"
+        today.minusDays(1) -> "archived yesterday"
+        else -> archivedAt?.let { "archived ${it.format(DateTimeFormatter.ofPattern("MMM d")).lowercase()}" } ?: "archived"
+    }
 
     Surface(
         modifier = modifier
@@ -295,9 +229,8 @@ fun ArchivedEventCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Title
             Text(
-                text = event.title.ifBlank { "Untitled" },
+                text = event.title.ifBlank { "untitled" }.lowercase(),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
@@ -306,10 +239,9 @@ fun ArchivedEventCard(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // URL (clickable)
             Text(
-                text = event.url,
-                style = MaterialTheme.typography.bodyMedium,
+                text = event.url.lowercase(),
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -318,115 +250,46 @@ fun ArchivedEventCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Archived date
             Text(
                 text = archivedText,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Action buttons: restore, delete forever
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                SmallMetroButton(
-                    text = "restore",
-                    onClick = onRestoreClick,
-                    filled = false
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                SmallMetroButton(
-                    text = "delete forever",
-                    onClick = onDeleteForeverClick,
-                    filled = false,
-                    isDestructive = true
-                )
+                TextAction(text = "restore", onClick = onRestoreClick)
+                Spacer(modifier = Modifier.width(16.dp))
+                TextAction(text = "delete", onClick = onDeleteForeverClick, destructive = true)
             }
         }
     }
 }
 
 @Composable
-private fun SmallMetroButton(
+private fun TextAction(
     text: String,
     onClick: () -> Unit,
-    filled: Boolean,
-    modifier: Modifier = Modifier,
-    isDestructive: Boolean = false
+    primary: Boolean = false,
+    destructive: Boolean = false
 ) {
-    val backgroundColor = when {
-        filled -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.surface
+    val color = when {
+        destructive -> MaterialTheme.colorScheme.error
+        primary -> MaterialTheme.colorScheme.onBackground
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
-    val textColor = when {
-        isDestructive -> MaterialTheme.colorScheme.error
-        filled -> MaterialTheme.colorScheme.onPrimary
-        else -> MaterialTheme.colorScheme.primary
-    }
-
-    Surface(
-        onClick = onClick,
-        modifier = modifier,
-        shape = RectangleShape,
-        color = backgroundColor,
-        border = BorderStroke(
-            1.dp,
-            if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
-        )
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium,
-            color = textColor,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-        )
-    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        color = color,
+        modifier = Modifier
+            .clickable { onClick() }
+            .padding(vertical = 4.dp)
+    )
 }
 
-@Composable
-fun EventListSection(
-    title: String,
-    events: List<SavedEvent>,
-    isUpcoming: Boolean,
-    onCancelClick: (SavedEvent) -> Unit,
-    onRescheduleClick: (SavedEvent) -> Unit,
-    onScheduleAgainClick: (SavedEvent) -> Unit,
-    onUrlClick: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        if (title.isNotEmpty()) {
-            Text(
-                text = title.lowercase(),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-        }
-
-        if (events.isEmpty()) {
-            Text(
-                text = if (isUpcoming) "no upcoming events" else "no completed events",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        } else {
-            events.forEach { event ->
-                // This is the legacy component, kept for compatibility
-                // New code should use EventCard, CompletedEventCard, or ArchivedEventCard directly
-                EventCard(
-                    event = event,
-                    onArchiveClick = { onCancelClick(event) },
-                    onRescheduleClick = { onRescheduleClick(event) },
-                    onDoneClick = { onScheduleAgainClick(event) },
-                    onUrlClick = { onUrlClick(event.url) }
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-        }
-    }
-}

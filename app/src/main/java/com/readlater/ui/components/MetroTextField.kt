@@ -23,7 +23,7 @@ fun MetroTextField(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = label.lowercase(),
+            text = label,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp)
@@ -32,7 +32,7 @@ fun MetroTextField(
             modifier = Modifier
                 .fillMaxWidth()
                 .border(1.dp, MaterialTheme.colorScheme.outline)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
             BasicTextField(
                 value = value,

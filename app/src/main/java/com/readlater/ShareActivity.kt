@@ -26,6 +26,7 @@ import com.readlater.data.AuthRepository
 import com.readlater.data.AuthState
 import com.readlater.data.CalendarRepository
 import com.readlater.data.EventRepository
+import com.readlater.data.ThemeRepository
 import com.readlater.ui.screens.NotConnectedOverlay
 import com.readlater.ui.screens.ShareOverlayContent
 import com.readlater.ui.theme.ReadLaterTheme
@@ -35,12 +36,14 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.Calendar
+import java.util.Locale
 
 class ShareActivity : ComponentActivity() {
 
     private lateinit var authRepository: AuthRepository
     private lateinit var calendarRepository: CalendarRepository
     private lateinit var eventRepository: EventRepository
+    private lateinit var themeRepository: ThemeRepository
 
     private fun getDeviceDate(): LocalDate {
         val calendar = Calendar.getInstance()
@@ -71,6 +74,7 @@ class ShareActivity : ComponentActivity() {
         authRepository = AuthRepository(applicationContext)
         calendarRepository = CalendarRepository(applicationContext)
         eventRepository = EventRepository(applicationContext, calendarRepository)
+        themeRepository = ThemeRepository(applicationContext)
 
         val sharedText = intent?.getStringExtra(Intent.EXTRA_TEXT) ?: ""
         val sharedUrl = UrlMetadataFetcher.extractUrl(sharedText) ?: sharedText
@@ -80,7 +84,9 @@ class ShareActivity : ComponentActivity() {
         val initialTime = getDefaultTime()
 
         setContent {
-            ReadLaterTheme {
+            val useDarkTheme by themeRepository.useDarkTheme.collectAsState(initial = true)
+
+            ReadLaterTheme(useDarkTheme = useDarkTheme) {
                 val scope = rememberCoroutineScope()
 
                 var title by remember { mutableStateOf("") }
@@ -165,14 +171,14 @@ class ShareActivity : ComponentActivity() {
                                                 )
                                                 Toast.makeText(
                                                     this@ShareActivity,
-                                                    "Event created",
+                                                    "event created",
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                                 finish()
                                             }.onFailure { error ->
                                                 Toast.makeText(
                                                     this@ShareActivity,
-                                                    "Failed: ${error.message}",
+                                                    "failed: ${error.message}".lowercase(Locale.ROOT),
                                                     Toast.LENGTH_LONG
                                                 ).show()
                                                 isLoading = false

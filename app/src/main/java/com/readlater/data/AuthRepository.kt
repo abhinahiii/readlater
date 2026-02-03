@@ -7,6 +7,9 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Scope
 import com.google.api.services.calendar.CalendarScopes
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,21 +53,28 @@ class AuthRepository(private val context: Context) {
     }
 
     fun handleSignInResult(data: Intent?) {
+        if (data == null) {
+            _authState.value = AuthState.NotAuthenticated
+            return
+        }
+
+        val task = GoogleSignIn.getSignedInAccountFromIntent(data)
         try {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-            if (task.isSuccessful) {
-                val account = task.result
-                if (account != null) {
-                    _authState.value = AuthState.Authenticated(account)
-                } else {
-                    _authState.value = AuthState.Error("No account returned")
-                }
+            val account = task.getResult(ApiException::class.java)
+            if (account != null) {
+                _authState.value = AuthState.Authenticated(account)
             } else {
-                val exception = task.exception
-                _authState.value = AuthState.Error(exception?.message ?: "Sign in failed")
+                _authState.value = AuthState.NotAuthenticated
+            }
+        } catch (e: ApiException) {
+            val status = e.statusCode
+            if (status == CommonStatusCodes.CANCELED || status == GoogleSignInStatusCodes.SIGN_IN_CANCELLED) {
+                _authState.value = AuthState.NotAuthenticated
+            } else {
+                _authState.value = AuthState.Error(e.message ?: "sign in failed")
             }
         } catch (e: Exception) {
-            _authState.value = AuthState.Error(e.message ?: "Sign in failed")
+            _authState.value = AuthState.Error(e.message ?: "sign in failed")
         }
     }
 

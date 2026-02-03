@@ -15,28 +15,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.DateRange
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -46,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.readlater.data.AuthState
 import com.readlater.data.SavedEvent
 import com.readlater.ui.components.ArchiveConfirmationDialog
@@ -56,15 +42,19 @@ import com.readlater.ui.components.DeleteConfirmationDialog
 import com.readlater.ui.components.EventCard
 import com.readlater.ui.components.MetroButton
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 @Composable
 fun HomeScreen(
     authState: AuthState,
+    userName: String,
     upcomingEvents: List<SavedEvent>,
     completedEvents: List<SavedEvent>,
     archivedEvents: List<SavedEvent>,
     summaryMessage: String,
     isSyncing: Boolean,
+    useDarkTheme: Boolean,
+    onToggleTheme: () -> Unit,
     onConnectClick: () -> Unit,
     onDisconnectClick: () -> Unit,
     onArchiveEvent: (SavedEvent) -> Unit,
@@ -79,24 +69,14 @@ fun HomeScreen(
     val context = LocalContext.current
 
     when (authState) {
-        is AuthState.Loading -> {
-            LoadingScreen(modifier = modifier)
-        }
-
-        is AuthState.NotAuthenticated -> {
-            NotAuthenticatedScreen(
-                onConnectClick = onConnectClick,
-                modifier = modifier
-            )
-        }
-
+        is AuthState.Loading -> LoadingScreen(modifier)
+        is AuthState.NotAuthenticated -> NotAuthenticatedScreen(onConnectClick, modifier)
         is AuthState.Authenticated -> {
-            AuthenticatedHomeScreen(
-                account = authState.account,
+            AuthenticatedScreen(
+                userName = userName,
                 upcomingEvents = upcomingEvents,
                 completedEvents = completedEvents,
                 archivedEvents = archivedEvents,
-                summaryMessage = summaryMessage,
                 isSyncing = isSyncing,
                 onArchiveEvent = onArchiveEvent,
                 onRescheduleEvent = onRescheduleEvent,
@@ -105,21 +85,14 @@ fun HomeScreen(
                 onScheduleAgainEvent = onScheduleAgainEvent,
                 onRestoreEvent = onRestoreEvent,
                 onDeleteForeverEvent = onDeleteForeverEvent,
+                onDisconnectClick = onDisconnectClick,
                 onUrlClick = { url ->
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                    context.startActivity(intent)
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
                 },
                 modifier = modifier
             )
         }
-
-        is AuthState.Error -> {
-            ErrorScreen(
-                message = authState.message,
-                onConnectClick = onConnectClick,
-                modifier = modifier
-            )
-        }
+        is AuthState.Error -> ErrorScreen(authState.message, onConnectClick, modifier)
     }
 }
 
@@ -131,18 +104,16 @@ private fun LoadingScreen(modifier: Modifier = Modifier) {
             .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "readlater",
                 style = MaterialTheme.typography.displayLarge,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "loading...",
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -168,34 +139,35 @@ private fun NotAuthenticatedScreen(
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "schedule time for content you discover",
+            text = "never forget what you want to read",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(64.dp))
+        Spacer(modifier = Modifier.height(48.dp))
 
         MetroButton(
             text = "connect google calendar",
             onClick = onConnectClick
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(40.dp))
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .border(1.dp, MaterialTheme.colorScheme.outline)
-                .padding(16.dp)
+                .padding(20.dp)
         ) {
             Text(
-                text = "after connecting, share any link to readlater to schedule reading time on your calendar.",
+                text = "share any article or video to readlater, and we'll add it to your calendar so you remember to check it out.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.4
             )
         }
     }
@@ -221,7 +193,7 @@ private fun ErrorScreen(
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        Spacer(modifier = Modifier.height(64.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Box(
             modifier = Modifier
@@ -230,7 +202,7 @@ private fun ErrorScreen(
                 .padding(16.dp)
         ) {
             Text(
-                text = "error: ${message.lowercase()}",
+                text = "something went wrong. ${message.lowercase()}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -245,13 +217,46 @@ private fun ErrorScreen(
     }
 }
 
+private fun getGreeting(): String {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    return when {
+        hour < 12 -> "good morning"
+        hour < 17 -> "good afternoon"
+        else -> "good evening"
+    }
+}
+
+private fun getSummaryText(upcomingEvents: List<SavedEvent>): String {
+    val now = System.currentTimeMillis()
+    val today = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+    val tomorrow = (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 1) }
+
+    val todayEvents = upcomingEvents.count { event ->
+        event.scheduledDateTime >= today.timeInMillis && event.scheduledDateTime < tomorrow.timeInMillis
+    }
+    val overdueEvents = upcomingEvents.count { it.scheduledDateTime < now }
+
+    return when {
+        overdueEvents > 0 && todayEvents > 0 -> "you have $todayEvents scheduled today, $overdueEvents overdue"
+        overdueEvents > 0 -> "you have $overdueEvents overdue item${if (overdueEvents > 1) "s" else ""}"
+        todayEvents > 0 -> "you have $todayEvents scheduled for today"
+        upcomingEvents.isNotEmpty() -> "you have ${upcomingEvents.size} item${if (upcomingEvents.size > 1) "s" else ""} coming up"
+        else -> "nothing scheduled yet"
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun AuthenticatedHomeScreen(
-    account: GoogleSignInAccount,
+private fun AuthenticatedScreen(
+    userName: String,
     upcomingEvents: List<SavedEvent>,
     completedEvents: List<SavedEvent>,
     archivedEvents: List<SavedEvent>,
-    summaryMessage: String,
     isSyncing: Boolean,
     onArchiveEvent: (SavedEvent) -> Unit,
     onRescheduleEvent: (SavedEvent) -> Unit,
@@ -260,77 +265,228 @@ private fun AuthenticatedHomeScreen(
     onScheduleAgainEvent: (SavedEvent) -> Unit,
     onRestoreEvent: (SavedEvent) -> Unit,
     onDeleteForeverEvent: (SavedEvent) -> Unit,
+    onDisconnectClick: () -> Unit,
     onUrlClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedBottomTab by remember { mutableIntStateOf(0) }
-    var showArchiveScreen by remember { mutableStateOf(false) }
-
-    // Archive confirmation dialog state
+    val pagerState = rememberPagerState(pageCount = { 3 })
+    val scope = rememberCoroutineScope()
+    
     var showArchiveConfirmation by remember { mutableStateOf(false) }
     var eventToArchive by remember { mutableStateOf<SavedEvent?>(null) }
-
-    // Delete confirmation dialog state
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var eventToDelete by remember { mutableStateOf<SavedEvent?>(null) }
+    var showDisconnectConfirmation by remember { mutableStateOf(false) }
 
-    if (showArchiveScreen) {
-        ArchiveScreen(
-            archivedEvents = archivedEvents,
-            onBackClick = { showArchiveScreen = false },
-            onRestoreClick = onRestoreEvent,
-            onDeleteForeverClick = { event ->
-                eventToDelete = event
-                showDeleteConfirmation = true
-            },
-            onUrlClick = onUrlClick
-        )
-    } else {
-        Scaffold(
-            modifier = modifier.fillMaxSize(),
-            containerColor = MaterialTheme.colorScheme.background,
-            bottomBar = {
-                BottomNavigationBar(
-                    selectedTab = selectedBottomTab,
-                    onTabSelected = { selectedBottomTab = it }
-                )
+    val sortedUpcoming = remember(upcomingEvents) {
+        val now = System.currentTimeMillis()
+        upcomingEvents.sortedWith(compareBy({ it.scheduledDateTime >= now }, { it.scheduledDateTime }))
+    }
+
+    val greeting = remember { getGreeting() }
+    val summaryText = remember(upcomingEvents) { getSummaryText(upcomingEvents) }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // Header
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(top = 40.dp, bottom = 8.dp)
+        ) {
+            // Greeting row with sign out aligned to the right
+            val greetingText = if (userName.isNotEmpty()) {
+                "$greeting $userName,"
+            } else {
+                "$greeting,"
             }
-        ) { paddingValues ->
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = greetingText,
+                    style = MaterialTheme.typography.displaySmall,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (isSyncing) {
+                        Text(
+                            text = "syncing",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Text(
+                        text = "sign out",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .clickable { showDisconnectConfirmation = true }
+                            .padding(vertical = 4.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+            
+            Text(
+                text = summaryText,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Tabs
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 16.dp)
+        ) {
+            TabItem(
+                text = "upcoming",
+                count = upcomingEvents.size,
+                selected = pagerState.currentPage == 0,
+                onClick = { scope.launch { pagerState.animateScrollToPage(0) } }
+            )
+            Spacer(modifier = Modifier.width(20.dp))
+            TabItem(
+                text = "done",
+                count = completedEvents.size,
+                selected = pagerState.currentPage == 1,
+                onClick = { scope.launch { pagerState.animateScrollToPage(1) } }
+            )
+            Spacer(modifier = Modifier.width(20.dp))
+            TabItem(
+                text = "archived",
+                count = archivedEvents.size,
+                selected = pagerState.currentPage == 2,
+                onClick = { scope.launch { pagerState.animateScrollToPage(2) } }
+            )
+        }
+
+        // Swipeable Content
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.weight(1f)
+        ) { page ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp)
             ) {
-                // Header
-                HeaderSection(
-                    account = account,
-                    summaryMessage = summaryMessage,
-                    isSyncing = isSyncing,
-                    onArchiveClick = { showArchiveScreen = true }
-                )
-
-                // Main content based on selected bottom tab
-                when (selectedBottomTab) {
-                    0 -> EventsContent(
-                        upcomingEvents = upcomingEvents,
-                        completedEvents = completedEvents,
-                        onArchiveEvent = { event ->
-                            eventToArchive = event
-                            showArchiveConfirmation = true
-                        },
-                        onRescheduleEvent = onRescheduleEvent,
-                        onMarkDoneEvent = onMarkDoneEvent,
-                        onUndoCompleteEvent = onUndoCompleteEvent,
-                        onScheduleAgainEvent = onScheduleAgainEvent,
-                        onUrlClick = onUrlClick
-                    )
-                    1 -> AnalyticsContent()
+                when (page) {
+                    0 -> {
+                        if (sortedUpcoming.isEmpty()) {
+                            EmptyState(
+                                title = "nothing here yet",
+                                description = "share an article or video to readlater to get started"
+                            )
+                        } else {
+                            sortedUpcoming.forEach { event ->
+                                EventCard(
+                                    event = event,
+                                    onArchiveClick = {
+                                        eventToArchive = event
+                                        showArchiveConfirmation = true
+                                    },
+                                    onRescheduleClick = { onRescheduleEvent(event) },
+                                    onDoneClick = { onMarkDoneEvent(event) },
+                                    onUrlClick = { onUrlClick(event.url) }
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
+                        }
+                    }
+                    1 -> {
+                        if (completedEvents.isEmpty()) {
+                            EmptyState(
+                                title = "nothing completed yet",
+                                description = "items you mark as done will show up here"
+                            )
+                        } else {
+                            completedEvents.forEach { event ->
+                                CompletedEventCard(
+                                    event = event,
+                                    onUndoClick = { onUndoCompleteEvent(event) },
+                                    onScheduleAgainClick = { onScheduleAgainEvent(event) },
+                                    onUrlClick = { onUrlClick(event.url) }
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
+                        }
+                    }
+                    2 -> {
+                        if (archivedEvents.isEmpty()) {
+                            EmptyState(
+                                title = "archive is empty",
+                                description = "archived items can be restored or permanently deleted"
+                            )
+                        } else {
+                            archivedEvents.forEach { event ->
+                                ArchivedEventCard(
+                                    event = event,
+                                    onRestoreClick = { onRestoreEvent(event) },
+                                    onDeleteForeverClick = {
+                                        eventToDelete = event
+                                        showDeleteConfirmation = true
+                                    },
+                                    onUrlClick = { onUrlClick(event.url) }
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
+                        }
+                    }
                 }
+                Spacer(modifier = Modifier.height(24.dp))
             }
+        }
+
+        // Footer - fun stat
+        val totalMinutesCompleted = completedEvents.sumOf { it.durationMinutes }
+        val totalMinutesScheduled = upcomingEvents.sumOf { it.durationMinutes }
+        
+        val funStat = when {
+            totalMinutesCompleted >= 60 -> {
+                val hours = totalMinutesCompleted / 60
+                val mins = totalMinutesCompleted % 60
+                if (mins > 0) "you've cleared ${hours}h ${mins}m of content" 
+                else "you've cleared ${hours}h of content"
+            }
+            totalMinutesCompleted > 0 -> "you've cleared ${totalMinutesCompleted}m of content"
+            totalMinutesScheduled >= 60 -> {
+                val hours = totalMinutesScheduled / 60
+                "${hours}h+ of content waiting for you"
+            }
+            totalMinutesScheduled > 0 -> "${totalMinutesScheduled}m of content waiting for you"
+            else -> null
+        }
+        
+        if (funStat != null) {
+            Text(
+                text = funStat,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                textAlign = TextAlign.Center
+            )
         }
     }
 
-    // Archive confirmation dialog
+    // Archive confirmation
     if (showArchiveConfirmation && eventToArchive != null) {
         ArchiveConfirmationDialog(
             eventTitle = eventToArchive!!.title,
@@ -346,7 +502,7 @@ private fun AuthenticatedHomeScreen(
         )
     }
 
-    // Delete confirmation dialog
+    // Delete confirmation
     if (showDeleteConfirmation && eventToDelete != null) {
         DeleteConfirmationDialog(
             eventTitle = eventToDelete!!.title,
@@ -361,264 +517,93 @@ private fun AuthenticatedHomeScreen(
             }
         )
     }
+
+    // Disconnect confirmation
+    if (showDisconnectConfirmation) {
+        DisconnectConfirmationDialog(
+            onDismiss = { showDisconnectConfirmation = false },
+            onConfirm = {
+                showDisconnectConfirmation = false
+                onDisconnectClick()
+            }
+        )
+    }
 }
 
 @Composable
-private fun HeaderSection(
-    account: GoogleSignInAccount,
-    summaryMessage: String,
-    isSyncing: Boolean,
-    onArchiveClick: () -> Unit
+private fun DisconnectConfirmationDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
 ) {
-    val firstName = account.givenName ?: account.displayName?.split(" ")?.firstOrNull() ?: "there"
-
-    Column(
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp)
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.9f))
+            .clickable { onDismiss() },
+        contentAlignment = Alignment.Center
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
+        Box(
+            modifier = Modifier
+                .padding(32.dp)
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline)
+                .clickable { /* consume click */ }
+                .padding(24.dp)
         ) {
-            // Left side: Greeting and summary
-            Column(modifier = Modifier.weight(1f)) {
+            Column {
                 Text(
-                    text = "hey ${firstName.lowercase()}",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onBackground
+                    text = "sign out?",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+
+                Spacer(modifier = Modifier.height(12.dp))
+
                 Text(
-                    text = summaryMessage,
+                    text = "you'll need to connect your google calendar again to use readlater.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-
-            // Right side: Archive button and connection status
-            Column(
-                horizontalAlignment = Alignment.End
-            ) {
-                Text(
-                    text = "archive",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { onArchiveClick() }
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = if (isSyncing) "syncing..." else "connected",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isSyncing) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ArchiveScreen(
-    archivedEvents: List<SavedEvent>,
-    onBackClick: () -> Unit,
-    onRestoreClick: (SavedEvent) -> Unit,
-    onDeleteForeverClick: (SavedEvent) -> Unit,
-    onUrlClick: (String) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        // Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
-            }
-            Text(
-                text = "archive",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        }
-
-        // Content
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
-        ) {
-            if (archivedEvents.isEmpty()) {
-                Spacer(modifier = Modifier.height(48.dp))
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "no archived events",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "events you archive will appear here.\nyou can restore them anytime.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            } else {
-                archivedEvents.forEach { event ->
-                    ArchivedEventCard(
-                        event = event,
-                        onRestoreClick = { onRestoreClick(event) },
-                        onDeleteForeverClick = { onDeleteForeverClick(event) },
-                        onUrlClick = { onUrlClick(event.url) }
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-            }
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun EventsContent(
-    upcomingEvents: List<SavedEvent>,
-    completedEvents: List<SavedEvent>,
-    onArchiveEvent: (SavedEvent) -> Unit,
-    onRescheduleEvent: (SavedEvent) -> Unit,
-    onMarkDoneEvent: (SavedEvent) -> Unit,
-    onUndoCompleteEvent: (SavedEvent) -> Unit,
-    onScheduleAgainEvent: (SavedEvent) -> Unit,
-    onUrlClick: (String) -> Unit
-) {
-    val pagerState = rememberPagerState(pageCount = { 2 })
-    val scope = rememberCoroutineScope()
-
-    // Sort upcoming events: overdue first, then by scheduled time
-    val sortedUpcomingEvents = remember(upcomingEvents) {
-        val currentTime = System.currentTimeMillis()
-        upcomingEvents.sortedWith(compareBy(
-            { it.scheduledDateTime >= currentTime }, // false (overdue) comes first
-            { it.scheduledDateTime }
-        ))
-    }
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Section tabs
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.Start
-        ) {
-            SectionTab(
-                text = "upcoming",
-                count = upcomingEvents.size,
-                selected = pagerState.currentPage == 0,
-                onClick = { scope.launch { pagerState.animateScrollToPage(0) } }
-            )
-            Spacer(modifier = Modifier.width(24.dp))
-            SectionTab(
-                text = "completed",
-                count = completedEvents.size,
-                selected = pagerState.currentPage == 1,
-                onClick = { scope.launch { pagerState.animateScrollToPage(1) } }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Swipeable pager
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxSize()
-        ) { page ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp)
-            ) {
-                when (page) {
-                    0 -> {
-                        // Upcoming events
-                        if (sortedUpcomingEvents.isEmpty()) {
-                            Text(
-                                text = "no upcoming events",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(24.dp))
-                            HowToUseTip()
-                        } else {
-                            sortedUpcomingEvents.forEach { event ->
-                                EventCard(
-                                    event = event,
-                                    onArchiveClick = { onArchiveEvent(event) },
-                                    onRescheduleClick = { onRescheduleEvent(event) },
-                                    onDoneClick = { onMarkDoneEvent(event) },
-                                    onUrlClick = { onUrlClick(event.url) }
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                            }
-                        }
-                    }
-                    1 -> {
-                        // Completed events
-                        if (completedEvents.isEmpty()) {
-                            Text(
-                                text = "no completed events",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        } else {
-                            completedEvents.forEach { event ->
-                                CompletedEventCard(
-                                    event = event,
-                                    onUndoClick = { onUndoCompleteEvent(event) },
-                                    onScheduleAgainClick = { onScheduleAgainEvent(event) },
-                                    onUrlClick = { onUrlClick(event.url) }
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                            }
-                        }
-                    }
-                }
 
                 Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Text(
+                        text = "cancel",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .clickable { onDismiss() }
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "sign out",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier
+                            .clickable { onConfirm() }
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun SectionTab(
+private fun TabItem(
     text: String,
     count: Int,
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier.clickable(onClick = onClick)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+    Column(modifier = Modifier.clickable(onClick = onClick)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = text,
                 style = MaterialTheme.typography.titleMedium,
@@ -629,10 +614,10 @@ private fun SectionTab(
                 }
             )
             if (count > 0) {
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "($count)",
-                    style = MaterialTheme.typography.labelMedium,
+                    text = "$count",
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -641,128 +626,37 @@ private fun SectionTab(
             Spacer(modifier = Modifier.height(4.dp))
             Box(
                 modifier = Modifier
-                    .width(32.dp)
+                    .width(16.dp)
                     .height(2.dp)
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(MaterialTheme.colorScheme.onBackground)
             )
-        } else {
-            Spacer(modifier = Modifier.height(6.dp))
         }
     }
 }
 
 @Composable
-private fun HowToUseTip() {
-    Box(
+private fun EmptyState(
+    title: String,
+    description: String
+) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outline)
-            .padding(16.dp)
+            .padding(vertical = 48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column {
-            Text(
-                text = "how to use",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = "1. find an article or video\n2. tap share\n3. select readlater\n4. pick a date and time\n5. event added to your calendar",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.5
-            )
-        }
-    }
-}
-
-@Composable
-private fun AnalyticsContent() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Info,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(48.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "analytics",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "coming soon",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun BottomNavigationBar(
-    selectedTab: Int,
-    onTabSelected: (Int) -> Unit
-) {
-    NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp
-    ) {
-        NavigationBarItem(
-            selected = selectedTab == 0,
-            onClick = { onTabSelected(0) },
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.DateRange,
-                    contentDescription = "Events"
-                )
-            },
-            label = {
-                Text(
-                    text = "events",
-                    style = MaterialTheme.typography.labelMedium
-                )
-            },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = MaterialTheme.colorScheme.primary,
-                selectedTextColor = MaterialTheme.colorScheme.primary,
-                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                indicatorColor = MaterialTheme.colorScheme.surface
-            )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        NavigationBarItem(
-            selected = selectedTab == 1,
-            onClick = { onTabSelected(1) },
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.Info,
-                    contentDescription = "Analytics"
-                )
-            },
-            label = {
-                Text(
-                    text = "analytics",
-                    style = MaterialTheme.typography.labelMedium
-                )
-            },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = MaterialTheme.colorScheme.primary,
-                selectedTextColor = MaterialTheme.colorScheme.primary,
-                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                indicatorColor = MaterialTheme.colorScheme.surface
-            )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
         )
     }
 }
+

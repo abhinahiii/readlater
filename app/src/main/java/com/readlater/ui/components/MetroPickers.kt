@@ -14,8 +14,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -41,6 +45,7 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 import java.util.Calendar
+import java.util.Locale
 
 data class DateOption(
     val label: String,
@@ -82,7 +87,7 @@ fun MetroDateTimePicker(
         return when (date) {
             today -> "today"
             tomorrow -> "tomorrow"
-            else -> date.format(DateTimeFormatter.ofPattern("EEE, MMM d")).lowercase()
+            else -> date.format(DateTimeFormatter.ofPattern("EEE, MMM d")).lowercase(Locale.ROOT)
         }
     }
 
@@ -115,7 +120,7 @@ fun MetroDateTimePicker(
         Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text = "time",
+            text = "start time",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp)
@@ -136,7 +141,12 @@ fun MetroDateTimePicker(
                    kotlin.math.abs(selectedTime.minute - optionTime.minute) <= 1
         }
 
-        val isCustomTime = selectedDate != deviceDate || timeOptions.none { isQuickTimeOption(it) }
+        val selectedQuickOption = if (selectedDate == deviceDate) {
+            timeOptions.firstOrNull { isQuickTimeOption(it) }
+        } else {
+            null
+        }
+        val isCustomTime = selectedQuickOption == null
 
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
@@ -167,30 +177,46 @@ fun MetroDateTimePicker(
                 }
             }
 
+            val customLabel = if (isCustomTime) selectedTime.format(timeFormatter).lowercase(Locale.ROOT) else "custom"
+            val customBorderColor = if (isTimeInPast && isCustomTime) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.outline
+            }
+            val customBackground = if (isCustomTime) MaterialTheme.colorScheme.primary else Color.Transparent
+            val customContentColor = if (isCustomTime) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+
             Box(
                 modifier = Modifier
-                    .border(1.dp, if (isTimeInPast && isCustomTime) Color(0xFFE53935) else MaterialTheme.colorScheme.outline)
-                    .background(if (isCustomTime) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .border(1.dp, customBorderColor)
+                    .background(customBackground)
                     .clickable { showTimePicker = true }
                     .padding(horizontal = 12.dp, vertical = 10.dp)
             ) {
-                Text(
-                    text = if (isCustomTime) selectedTime.format(timeFormatter).lowercase() else "other",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = when {
-                        isTimeInPast && isCustomTime -> Color(0xFFE53935)
-                        isCustomTime -> MaterialTheme.colorScheme.onPrimary
-                        else -> MaterialTheme.colorScheme.onSurface
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = customLabel,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isTimeInPast && isCustomTime) MaterialTheme.colorScheme.error else customContentColor
+                    )
+                    if (isCustomTime) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(
+                            imageVector = Icons.Outlined.Edit,
+                            contentDescription = "edit time",
+                            tint = if (isTimeInPast) MaterialTheme.colorScheme.error else customContentColor,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
-                )
+                }
             }
         }
 
         if (isTimeInPast) {
             Text(
-                text = "this time has passed. please select a future time.",
+                text = "selected time has already passed. choose a future time.",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFFE53935),
+                color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(top = 8.dp)
             )
         }
@@ -341,14 +367,14 @@ fun MetroDateTimePicker(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "select time",
+                        text = "select start time",
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurface
                     )
 
                     if (selectedDate == deviceDate) {
                         Text(
-                            text = "must be after ${deviceTime.format(timeFormatter).lowercase()}",
+                            text = "must be after ${deviceTime.format(timeFormatter).lowercase(Locale.ROOT)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 4.dp)
@@ -381,7 +407,7 @@ fun MetroDateTimePicker(
                         Text(
                             text = errorMessage!!,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color(0xFFE53935),
+                            color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(top = 8.dp)
                         )
                     }
@@ -416,7 +442,7 @@ fun MetroDateTimePicker(
                                     val freshDeviceTime = getDeviceTime()
 
                                     if (selectedDate == freshDeviceDate && !newTime.isAfter(freshDeviceTime)) {
-                                        errorMessage = "select a future time"
+                                        errorMessage = "select a future time."
                                     } else {
                                         onDateTimeSelected(selectedDate, newTime)
                                         showTimePicker = false
@@ -469,7 +495,7 @@ private fun MetroCalendarView(
             }
 
             Text(
-                text = currentMonth.value.format(DateTimeFormatter.ofPattern("MMMM yyyy")).lowercase(),
+                text = currentMonth.value.format(DateTimeFormatter.ofPattern("MMMM yyyy")).lowercase(Locale.ROOT),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )

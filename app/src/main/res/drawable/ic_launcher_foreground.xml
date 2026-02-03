@@ -4,8 +4,8 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Letter R in brutalist style -->
+    <!-- Centered lowercase 'r' with light weight -->
     <path
-        android:fillColor="#000000"
-        android:pathData="M36,30h24c8,0 14,6 14,14c0,6 -4,11 -9,13l12,21h-12l-10,-18h-7v18h-12v-48zM48,40v12h10c4,0 6,-2 6,-6s-2,-6 -6,-6h-10z"/>
+        android:fillColor="#1A1A1A"
+        android:pathData="M44,40h5v4c1.5,-2.5 4,-4.5 8,-4.5c1.5,0 3,0.3 4,0.8l-1.5,5c-0.8,-0.3 -1.5,-0.5 -2.5,-0.5c-3.5,0 -6,2 -8,5.5v17.7h-5v-28z"/>
 </vector>

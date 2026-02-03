@@ -12,7 +12,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,14 +26,15 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.Calendar
+import java.util.Locale
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -44,14 +50,25 @@ fun RescheduleDialog(
     var selectedTime by remember { mutableStateOf(initialTime) }
     var selectedDuration by remember { mutableIntStateOf(initialDuration) }
 
-    val durations = listOf(
-        15 to "15m",
-        30 to "30m",
-        45 to "45m",
-        60 to "1h",
-        90 to "1.5h",
-        120 to "2h"
+    val durationOptions = listOf(
+        15 to "15 min",
+        30 to "30 min",
+        45 to "45 min",
+        60 to "1 hr",
+        90 to "1.5 hr",
+        120 to "2 hr"
     )
+
+    fun formatDuration(minutes: Int): String {
+        if (minutes < 60) return "$minutes min"
+        val hours = minutes / 60
+        val mins = minutes % 60
+        return if (mins == 0) {
+            if (hours == 1) "1 hr" else "$hours hr"
+        } else {
+            "$hours hr $mins min"
+        }
+    }
 
     // Check if selected time is in the past
     fun isTimeInPast(): Boolean {
@@ -69,13 +86,15 @@ fun RescheduleDialog(
     }
 
     val timeInPast = isTimeInPast()
+    val isCustomDuration = durationOptions.none { it.first == selectedDuration }
+    var showDurationPicker by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White)
-                .border(2.dp, Color.Black)
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline)
         ) {
             Column(
                 modifier = Modifier
@@ -83,14 +102,14 @@ fun RescheduleDialog(
                     .padding(24.dp)
             ) {
                 Text(
-                    text = title.uppercase(),
+                    text = title.lowercase(Locale.ROOT),
                     style = MaterialTheme.typography.headlineMedium,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                BrutalistDateTimePicker(
+                MetroDateTimePicker(
                     selectedDate = selectedDate,
                     selectedTime = selectedTime,
                     onDateTimeSelected = { date, time ->
@@ -103,9 +122,9 @@ fun RescheduleDialog(
 
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "DURATION",
+                        text = "duration",
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     FlowRow(
@@ -113,20 +132,46 @@ fun RescheduleDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        durations.forEach { (minutes, label) ->
+                        durationOptions.forEach { (minutes, label) ->
                             val isSelected = selectedDuration == minutes
                             Box(
                                 modifier = Modifier
-                                    .border(2.dp, Color.Black)
-                                    .background(if (isSelected) Color.Black else Color.White)
+                                    .border(1.dp, MaterialTheme.colorScheme.outline)
+                                    .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
                                     .clickable { selectedDuration = minutes }
                                     .padding(horizontal = 16.dp, vertical = 12.dp)
                             ) {
                                 Text(
                                     text = label,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = if (isSelected) Color.White else Color.Black
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                                 )
+                            }
+                        }
+
+                        val customLabel = if (isCustomDuration) formatDuration(selectedDuration) else "custom"
+                        Box(
+                            modifier = Modifier
+                                .border(1.dp, MaterialTheme.colorScheme.outline)
+                                .background(if (isCustomDuration) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
+                                .clickable { showDurationPicker = true }
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = customLabel.lowercase(Locale.ROOT),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (isCustomDuration) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                )
+                                if (isCustomDuration) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Icon(
+                                        imageVector = Icons.Outlined.Edit,
+                                        contentDescription = "edit duration",
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -139,15 +184,15 @@ fun RescheduleDialog(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Box(modifier = Modifier.weight(1f)) {
-                        BrutalistButton(
-                            text = "Cancel",
+                        MetroButton(
+                            text = "cancel",
                             onClick = onDismiss,
                             filled = false
                         )
                     }
                     Box(modifier = Modifier.weight(1f)) {
-                        BrutalistButton(
-                            text = "Confirm",
+                        MetroButton(
+                            text = "save",
                             onClick = {
                                 onConfirm(
                                     LocalDateTime.of(selectedDate, selectedTime),
@@ -156,6 +201,111 @@ fun RescheduleDialog(
                             },
                             enabled = !timeInPast
                         )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showDurationPicker) {
+        var tempDuration by remember { mutableIntStateOf(selectedDuration) }
+        Dialog(onDismissRequest = { showDurationPicker = false }) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp)
+                ) {
+                Text(
+                    text = "custom duration",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .border(1.dp, MaterialTheme.colorScheme.outline)
+                                .clickable {
+                                    tempDuration = (tempDuration - 15).coerceAtLeast(15)
+                                }
+                                .padding(horizontal = 18.dp, vertical = 12.dp)
+                        ) {
+                            Text(
+                                text = "-",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .border(1.dp, MaterialTheme.colorScheme.outline)
+                                .padding(horizontal = 18.dp, vertical = 12.dp)
+                        ) {
+                            Text(
+                                text = formatDuration(tempDuration),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .border(1.dp, MaterialTheme.colorScheme.outline)
+                                .clickable {
+                                    tempDuration = (tempDuration + 15).coerceAtMost(240)
+                                }
+                                .padding(horizontal = 18.dp, vertical = 12.dp)
+                        ) {
+                            Text(
+                                text = "+",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "adjust in 15-minute steps.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            MetroButton(
+                                text = "cancel",
+                                onClick = { showDurationPicker = false },
+                                filled = false
+                            )
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            MetroButton(
+                                text = "done",
+                                onClick = {
+                                    selectedDuration = tempDuration
+                                    showDurationPicker = false
+                                }
+                            )
+                        }
                     }
                 }
             }

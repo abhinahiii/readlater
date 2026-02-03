@@ -7,6 +7,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 class EventRepository(
     context: Context,
@@ -43,30 +44,30 @@ class EventRepository(
 
         return when {
             eventsToday == 0 && overdueCount == 0 && nextEvent == null -> {
-                "you have no scheduled events"
+                "no events scheduled."
             }
             eventsToday == 0 && overdueCount == 0 && nextEvent != null -> {
                 val nextDate = java.time.Instant.ofEpochMilli(nextEvent.scheduledDateTime)
                     .atZone(ZoneId.systemDefault())
                     .toLocalDate()
                 val formatter = DateTimeFormatter.ofPattern("EEEE")
-                val dayName = nextDate.format(formatter).lowercase()
-                "no events today · next on $dayName"
+                val dayName = nextDate.format(formatter).lowercase(Locale.ROOT)
+                "no events today. next scheduled on $dayName."
             }
             eventsToday > 0 && overdueCount == 0 -> {
-                if (eventsToday == 1) "you have 1 event today"
-                else "you have $eventsToday events today"
+                if (eventsToday == 1) "you have 1 event today."
+                else "you have $eventsToday events today."
             }
             eventsToday > 0 && overdueCount > 0 -> {
                 val todayText = if (eventsToday == 1) "1 event today" else "$eventsToday events today"
                 val overdueText = if (overdueCount == 1) "1 overdue" else "$overdueCount overdue"
-                "you have $todayText, $overdueText"
+                "you have $todayText and $overdueText."
             }
             eventsToday == 0 && overdueCount > 0 -> {
-                if (overdueCount == 1) "you have 1 overdue event"
-                else "you have $overdueCount overdue events"
+                if (overdueCount == 1) "you have 1 overdue event."
+                else "you have $overdueCount overdue events."
             }
-            else -> "all caught up"
+            else -> "all caught up."
         }
     }
 

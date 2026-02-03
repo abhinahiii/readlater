@@ -73,7 +73,6 @@ fun MetroButton(
     }
 }
 
-// Alias for backward compatibility
 @Composable
 fun BrutalistButton(
     text: String,

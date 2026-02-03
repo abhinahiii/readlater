@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import java.util.Locale
 
 @Composable
 fun ArchiveConfirmationDialog(
@@ -46,7 +47,7 @@ fun ArchiveConfirmationDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "\"$eventTitle\"",
+                    text = "\"${eventTitle.lowercase(Locale.ROOT)}\"",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
@@ -56,7 +57,7 @@ fun ArchiveConfirmationDialog(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "will be moved to your archive. you can restore it anytime.",
+                    text = "it will be moved to archive. you can restore it anytime.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -116,7 +117,7 @@ fun DeleteConfirmationDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "\"$eventTitle\"",
+                    text = "\"${eventTitle.lowercase(Locale.ROOT)}\"",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
@@ -126,7 +127,7 @@ fun DeleteConfirmationDialog(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "will be permanently deleted. this action cannot be undone.",
+                    text = "it will be permanently deleted. this action cannot be undone.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
