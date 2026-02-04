@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.readlater.data.EventStatus
 import com.readlater.data.SavedEvent
+import com.readlater.ui.theme.DarkThemeColors
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -65,9 +66,9 @@ fun EventCard(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline)),
+            .border(BorderStroke(1.dp, DarkThemeColors.Border)),
         shape = RectangleShape,
-        color = MaterialTheme.colorScheme.surface
+        color = DarkThemeColors.Background
     ) {
         Column(
             modifier = Modifier
@@ -77,7 +78,7 @@ fun EventCard(
             Text(
                 text = event.title.ifBlank { "untitled" }.lowercase(),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = DarkThemeColors.TextPrimary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -87,7 +88,7 @@ fun EventCard(
             Text(
                 text = event.url.lowercase(),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = DarkThemeColors.TextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.clickable { onUrlClick() }
@@ -99,7 +100,7 @@ fun EventCard(
                 Text(
                     text = "$dateText · $timeText · ${formatDuration(event.durationMinutes)}",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = DarkThemeColors.TextSecondary
                 )
             }
 
@@ -108,7 +109,7 @@ fun EventCard(
                 Text(
                     text = "overdue",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error
+                    color = DarkThemeColors.OverdueRed
                 )
             }
 
@@ -149,9 +150,9 @@ fun CompletedEventCard(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline)),
+            .border(BorderStroke(1.dp, DarkThemeColors.Border)),
         shape = RectangleShape,
-        color = MaterialTheme.colorScheme.surface
+        color = DarkThemeColors.Background
     ) {
         Column(
             modifier = Modifier
@@ -161,7 +162,7 @@ fun CompletedEventCard(
             Text(
                 text = event.title.ifBlank { "untitled" }.lowercase(),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = DarkThemeColors.TextPrimary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -171,7 +172,7 @@ fun CompletedEventCard(
             Text(
                 text = event.url.lowercase(),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = DarkThemeColors.TextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.clickable { onUrlClick() }
@@ -182,7 +183,7 @@ fun CompletedEventCard(
             Text(
                 text = completedText,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = DarkThemeColors.TextSecondary
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -220,9 +221,9 @@ fun ArchivedEventCard(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline)),
+            .border(BorderStroke(1.dp, DarkThemeColors.Border)),
         shape = RectangleShape,
-        color = MaterialTheme.colorScheme.surface
+        color = DarkThemeColors.Background
     ) {
         Column(
             modifier = Modifier
@@ -232,7 +233,7 @@ fun ArchivedEventCard(
             Text(
                 text = event.title.ifBlank { "untitled" }.lowercase(),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = DarkThemeColors.TextPrimary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -242,7 +243,7 @@ fun ArchivedEventCard(
             Text(
                 text = event.url.lowercase(),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = DarkThemeColors.TextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.clickable { onUrlClick() }
@@ -253,7 +254,7 @@ fun ArchivedEventCard(
             Text(
                 text = archivedText,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = DarkThemeColors.TextSecondary
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -278,9 +279,9 @@ private fun TextAction(
     destructive: Boolean = false
 ) {
     val color = when {
-        destructive -> MaterialTheme.colorScheme.error
-        primary -> MaterialTheme.colorScheme.onBackground
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
+        destructive -> DarkThemeColors.OverdueRed
+        primary -> DarkThemeColors.TextPrimary
+        else -> DarkThemeColors.TextSecondary
     }
 
     Text(
@@ -292,4 +293,3 @@ private fun TextAction(
             .padding(vertical = 4.dp)
     )
 }
-
