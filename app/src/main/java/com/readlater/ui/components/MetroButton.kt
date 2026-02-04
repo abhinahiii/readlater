@@ -11,8 +11,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
+import com.readlater.ui.theme.DarkThemeColors
 
 @Composable
 fun MetroButton(
@@ -29,12 +29,12 @@ fun MetroButton(
                 .height(48.dp)
                 .fillMaxWidth(),
             enabled = enabled,
-            shape = RectangleShape,
+            shape = MaterialTheme.shapes.medium,
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                disabledContainerColor = MaterialTheme.colorScheme.outline,
-                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                containerColor = DarkThemeColors.TextPrimary,
+                contentColor = DarkThemeColors.Background,
+                disabledContainerColor = DarkThemeColors.Border,
+                disabledContentColor = DarkThemeColors.TextSecondary
             ),
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
             elevation = ButtonDefaults.buttonElevation(
@@ -43,7 +43,7 @@ fun MetroButton(
             )
         ) {
             Text(
-                text = text.lowercase(),
+                text = text.uppercase(),
                 style = MaterialTheme.typography.labelLarge
             )
         }
@@ -54,19 +54,19 @@ fun MetroButton(
                 .height(48.dp)
                 .fillMaxWidth(),
             enabled = enabled,
-            shape = RectangleShape,
+            shape = MaterialTheme.shapes.medium,
             colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = MaterialTheme.colorScheme.primary,
-                disabledContentColor = MaterialTheme.colorScheme.outline
+                contentColor = DarkThemeColors.TextPrimary,
+                disabledContentColor = DarkThemeColors.TextSecondary
             ),
             border = BorderStroke(
                 1.dp,
-                if (enabled) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outlineVariant
+                if (enabled) DarkThemeColors.Border else DarkThemeColors.Border.copy(alpha = 0.5f)
             ),
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
         ) {
             Text(
-                text = text.lowercase(),
+                text = text.uppercase(),
                 style = MaterialTheme.typography.labelLarge
             )
         }

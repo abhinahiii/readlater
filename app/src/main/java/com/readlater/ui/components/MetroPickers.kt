@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.readlater.ui.theme.DarkThemeColors
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -98,22 +99,22 @@ fun MetroDateTimePicker(
 
         Text(
             text = "date",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.labelSmall,
+            color = DarkThemeColors.TextSecondary,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, MaterialTheme.colorScheme.outline)
+                .border(1.dp, DarkThemeColors.Border)
                 .clickable { showDatePicker = true }
                 .padding(16.dp)
         ) {
             Text(
                 text = formatDateLabel(selectedDate),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
+                style = MaterialTheme.typography.bodyMedium,
+                color = DarkThemeColors.TextPrimary
             )
         }
 
@@ -121,8 +122,8 @@ fun MetroDateTimePicker(
 
         Text(
             text = "start time",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.labelSmall,
+            color = DarkThemeColors.TextSecondary,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
@@ -157,8 +158,8 @@ fun MetroDateTimePicker(
                 val isSelected = isQuickTimeOption(option)
                 Box(
                     modifier = Modifier
-                        .border(1.dp, MaterialTheme.colorScheme.outline)
-                        .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                        .border(1.dp, DarkThemeColors.Border)
+                        .background(if (isSelected) DarkThemeColors.TextPrimary else Color.Transparent)
                         .clickable {
                             var newTime = deviceTime.plusMinutes(option.minutesFromNow.toLong())
                             var newDate = deviceDate
@@ -172,19 +173,19 @@ fun MetroDateTimePicker(
                     Text(
                         text = option.label,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                        color = if (isSelected) DarkThemeColors.Background else DarkThemeColors.TextPrimary
                     )
                 }
             }
 
             val customLabel = if (isCustomTime) selectedTime.format(timeFormatter).lowercase(Locale.ROOT) else "custom"
             val customBorderColor = if (isTimeInPast && isCustomTime) {
-                MaterialTheme.colorScheme.error
+                DarkThemeColors.OverdueRed
             } else {
-                MaterialTheme.colorScheme.outline
+                DarkThemeColors.Border
             }
-            val customBackground = if (isCustomTime) MaterialTheme.colorScheme.primary else Color.Transparent
-            val customContentColor = if (isCustomTime) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+            val customBackground = if (isCustomTime) DarkThemeColors.TextPrimary else Color.Transparent
+            val customContentColor = if (isCustomTime) DarkThemeColors.Background else DarkThemeColors.TextPrimary
 
             Box(
                 modifier = Modifier
@@ -197,14 +198,14 @@ fun MetroDateTimePicker(
                     Text(
                         text = customLabel,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (isTimeInPast && isCustomTime) MaterialTheme.colorScheme.error else customContentColor
+                        color = if (isTimeInPast && isCustomTime) DarkThemeColors.OverdueRed else customContentColor
                     )
                     if (isCustomTime) {
                         Spacer(modifier = Modifier.width(6.dp))
                         Icon(
                             imageVector = Icons.Outlined.Edit,
                             contentDescription = "edit time",
-                            tint = if (isTimeInPast) MaterialTheme.colorScheme.error else customContentColor,
+                            tint = if (isTimeInPast) DarkThemeColors.OverdueRed else customContentColor,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -216,7 +217,7 @@ fun MetroDateTimePicker(
             Text(
                 text = "selected time has already passed. choose a future time.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
+                color = DarkThemeColors.OverdueRed,
                 modifier = Modifier.padding(top = 8.dp)
             )
         }
@@ -256,8 +257,8 @@ fun MetroDateTimePicker(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outline)
+                    .background(DarkThemeColors.DialogBackground)
+                    .border(1.dp, DarkThemeColors.Border)
             ) {
                 Column(
                     modifier = Modifier
@@ -268,7 +269,7 @@ fun MetroDateTimePicker(
                     Text(
                         text = "select date",
                         style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = DarkThemeColors.TextPrimary
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -282,8 +283,8 @@ fun MetroDateTimePicker(
                             val isSelected = selectedOption == option
                             Box(
                                 modifier = Modifier
-                                    .border(1.dp, MaterialTheme.colorScheme.outline)
-                                    .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                                    .border(1.dp, DarkThemeColors.Border)
+                                    .background(if (isSelected) DarkThemeColors.TextPrimary else Color.Transparent)
                                     .clickable {
                                         tempSelectedDate = option.dates.first()
                                     }
@@ -292,7 +293,7 @@ fun MetroDateTimePicker(
                                 Text(
                                     text = option.label,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                    color = if (isSelected) DarkThemeColors.Background else DarkThemeColors.TextPrimary
                                 )
                             }
                         }
@@ -314,7 +315,7 @@ fun MetroDateTimePicker(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.primary)
+                            .background(DarkThemeColors.TextPrimary)
                             .clickable {
                                 val deviceTime = getDeviceTime()
                                 val newTime = if (tempSelectedDate == deviceDate && selectedTime.isBefore(deviceTime)) {
@@ -331,7 +332,7 @@ fun MetroDateTimePicker(
                         Text(
                             text = "done",
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onPrimary
+                            color = DarkThemeColors.Background
                         )
                     }
                 }
@@ -357,8 +358,8 @@ fun MetroDateTimePicker(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outline)
+                    .background(DarkThemeColors.DialogBackground)
+                    .border(1.dp, DarkThemeColors.Border)
             ) {
                 Column(
                     modifier = Modifier
@@ -369,14 +370,14 @@ fun MetroDateTimePicker(
                     Text(
                         text = "select start time",
                         style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = DarkThemeColors.TextPrimary
                     )
 
                     if (selectedDate == deviceDate) {
                         Text(
                             text = "must be after ${deviceTime.format(timeFormatter).lowercase(Locale.ROOT)}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = DarkThemeColors.TextSecondary,
                             modifier = Modifier.padding(top = 4.dp)
                         )
                     }
@@ -386,20 +387,20 @@ fun MetroDateTimePicker(
                     TimePicker(
                         state = timePickerState,
                         colors = TimePickerDefaults.colors(
-                            clockDialColor = MaterialTheme.colorScheme.surfaceVariant,
-                            clockDialSelectedContentColor = MaterialTheme.colorScheme.onPrimary,
-                            clockDialUnselectedContentColor = MaterialTheme.colorScheme.onSurface,
-                            selectorColor = MaterialTheme.colorScheme.primary,
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            periodSelectorBorderColor = MaterialTheme.colorScheme.outline,
-                            periodSelectorSelectedContainerColor = MaterialTheme.colorScheme.primary,
-                            periodSelectorSelectedContentColor = MaterialTheme.colorScheme.onPrimary,
-                            periodSelectorUnselectedContainerColor = MaterialTheme.colorScheme.surface,
-                            periodSelectorUnselectedContentColor = MaterialTheme.colorScheme.onSurface,
-                            timeSelectorSelectedContainerColor = MaterialTheme.colorScheme.primary,
-                            timeSelectorSelectedContentColor = MaterialTheme.colorScheme.onPrimary,
-                            timeSelectorUnselectedContainerColor = MaterialTheme.colorScheme.surface,
-                            timeSelectorUnselectedContentColor = MaterialTheme.colorScheme.onSurface
+                            clockDialColor = DarkThemeColors.Border,
+                            clockDialSelectedContentColor = DarkThemeColors.Background,
+                            clockDialUnselectedContentColor = DarkThemeColors.TextPrimary,
+                            selectorColor = DarkThemeColors.TextPrimary,
+                            containerColor = DarkThemeColors.DialogBackground,
+                            periodSelectorBorderColor = DarkThemeColors.Border,
+                            periodSelectorSelectedContainerColor = DarkThemeColors.TextPrimary,
+                            periodSelectorSelectedContentColor = DarkThemeColors.Background,
+                            periodSelectorUnselectedContainerColor = DarkThemeColors.DialogBackground,
+                            periodSelectorUnselectedContentColor = DarkThemeColors.TextPrimary,
+                            timeSelectorSelectedContainerColor = DarkThemeColors.TextPrimary,
+                            timeSelectorSelectedContentColor = DarkThemeColors.Background,
+                            timeSelectorUnselectedContainerColor = DarkThemeColors.DialogBackground,
+                            timeSelectorUnselectedContentColor = DarkThemeColors.TextPrimary
                         )
                     )
 
@@ -407,7 +408,7 @@ fun MetroDateTimePicker(
                         Text(
                             text = errorMessage!!,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error,
+                            color = DarkThemeColors.OverdueRed,
                             modifier = Modifier.padding(top = 8.dp)
                         )
                     }
@@ -421,7 +422,7 @@ fun MetroDateTimePicker(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .border(1.dp, MaterialTheme.colorScheme.outline)
+                                .border(1.dp, DarkThemeColors.Border)
                                 .clickable { showTimePicker = false }
                                 .padding(16.dp),
                             contentAlignment = Alignment.Center
@@ -429,13 +430,13 @@ fun MetroDateTimePicker(
                             Text(
                                 text = "cancel",
                                 style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = DarkThemeColors.TextPrimary
                             )
                         }
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .background(MaterialTheme.colorScheme.primary)
+                                .background(DarkThemeColors.TextPrimary)
                                 .clickable {
                                     val newTime = LocalTime.of(timePickerState.hour, timePickerState.minute)
                                     val freshDeviceDate = getDeviceDate()
@@ -454,7 +455,7 @@ fun MetroDateTimePicker(
                             Text(
                                 text = "done",
                                 style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onPrimary
+                                color = DarkThemeColors.Background
                             )
                         }
                     }
@@ -482,7 +483,7 @@ private fun MetroCalendarView(
         ) {
             Box(
                 modifier = Modifier
-                    .border(1.dp, MaterialTheme.colorScheme.outline)
+                    .border(1.dp, DarkThemeColors.Border)
                     .clickable {
                         val newMonth = currentMonth.value.minusMonths(1)
                         if (!newMonth.isBefore(YearMonth.from(minDate))) {
@@ -491,24 +492,32 @@ private fun MetroCalendarView(
                     }
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                Text(text = "<", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = "<",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = DarkThemeColors.TextPrimary
+                )
             }
 
             Text(
                 text = currentMonth.value.format(DateTimeFormatter.ofPattern("MMMM yyyy")).lowercase(Locale.ROOT),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
+                color = DarkThemeColors.TextPrimary
             )
 
             Box(
                 modifier = Modifier
-                    .border(1.dp, MaterialTheme.colorScheme.outline)
+                    .border(1.dp, DarkThemeColors.Border)
                     .clickable {
                         currentMonth.value = currentMonth.value.plusMonths(1)
                     }
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                Text(text = ">", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = ">",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = DarkThemeColors.TextPrimary
+                )
             }
         }
 
@@ -520,8 +529,8 @@ private fun MetroCalendarView(
                     text = day,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.labelSmall,
+                    color = DarkThemeColors.TextSecondary
                 )
             }
         }
@@ -559,8 +568,8 @@ private fun MetroCalendarView(
                                     .size(40.dp)
                                     .then(
                                         when {
-                                            isSelected -> Modifier.background(MaterialTheme.colorScheme.primary)
-                                            isHighlighted -> Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
+                                            isSelected -> Modifier.background(DarkThemeColors.TextPrimary)
+                                            isHighlighted -> Modifier.background(DarkThemeColors.Border)
                                             else -> Modifier
                                         }
                                     )
@@ -577,9 +586,9 @@ private fun MetroCalendarView(
                                     text = date.dayOfMonth.toString(),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = when {
-                                        isSelected -> MaterialTheme.colorScheme.onPrimary
-                                        isPast -> MaterialTheme.colorScheme.outlineVariant
-                                        else -> MaterialTheme.colorScheme.onSurface
+                                        isSelected -> DarkThemeColors.Background
+                                        isPast -> DarkThemeColors.TextSecondary.copy(alpha = 0.4f)
+                                        else -> DarkThemeColors.TextPrimary
                                     }
                                 )
                             }
@@ -594,7 +603,6 @@ private fun MetroCalendarView(
     }
 }
 
-// Alias for backward compatibility
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun BrutalistDateTimePicker(

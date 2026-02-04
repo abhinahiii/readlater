@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Icon
@@ -28,8 +29,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.readlater.ui.theme.DarkThemeColors
+import com.readlater.ui.theme.EditorialSpacing
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -70,7 +74,6 @@ fun RescheduleDialog(
         }
     }
 
-    // Check if selected time is in the past
     fun isTimeInPast(): Boolean {
         val calendar = Calendar.getInstance()
         val deviceDate = LocalDate.of(
@@ -93,21 +96,21 @@ fun RescheduleDialog(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
-                .border(1.dp, MaterialTheme.colorScheme.outline)
+                .background(DarkThemeColors.DialogBackground)
+                .border(1.dp, DarkThemeColors.Border)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp)
+                    .padding(EditorialSpacing.m)
             ) {
                 Text(
                     text = title.lowercase(Locale.ROOT),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = MaterialTheme.typography.displaySmall,
+                    color = DarkThemeColors.TextPrimary
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(EditorialSpacing.m))
 
                 MetroDateTimePicker(
                     selectedDate = selectedDate,
@@ -118,14 +121,14 @@ fun RescheduleDialog(
                     }
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(EditorialSpacing.m))
 
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = "duration",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        style = MaterialTheme.typography.labelSmall,
+                        color = DarkThemeColors.TextSecondary,
+                        modifier = Modifier.padding(bottom = EditorialSpacing.s)
                     )
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
@@ -136,15 +139,15 @@ fun RescheduleDialog(
                             val isSelected = selectedDuration == minutes
                             Box(
                                 modifier = Modifier
-                                    .border(1.dp, MaterialTheme.colorScheme.outline)
-                                    .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
+                                    .border(1.dp, DarkThemeColors.Border)
+                                    .background(if (isSelected) DarkThemeColors.TextPrimary else Color.Transparent)
                                     .clickable { selectedDuration = minutes }
                                     .padding(horizontal = 16.dp, vertical = 12.dp)
                             ) {
                                 Text(
                                     text = label,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                    color = if (isSelected) DarkThemeColors.Background else DarkThemeColors.TextPrimary
                                 )
                             }
                         }
@@ -152,8 +155,8 @@ fun RescheduleDialog(
                         val customLabel = if (isCustomDuration) formatDuration(selectedDuration) else "custom"
                         Box(
                             modifier = Modifier
-                                .border(1.dp, MaterialTheme.colorScheme.outline)
-                                .background(if (isCustomDuration) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
+                                .border(1.dp, DarkThemeColors.Border)
+                                .background(if (isCustomDuration) DarkThemeColors.TextPrimary else Color.Transparent)
                                 .clickable { showDurationPicker = true }
                                 .padding(horizontal = 16.dp, vertical = 12.dp)
                         ) {
@@ -161,14 +164,14 @@ fun RescheduleDialog(
                                 Text(
                                     text = customLabel.lowercase(Locale.ROOT),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = if (isCustomDuration) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                    color = if (isCustomDuration) DarkThemeColors.Background else DarkThemeColors.TextPrimary
                                 )
                                 if (isCustomDuration) {
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Icon(
                                         imageVector = Icons.Outlined.Edit,
                                         contentDescription = "edit duration",
-                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        tint = DarkThemeColors.Background,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
@@ -177,7 +180,7 @@ fun RescheduleDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(EditorialSpacing.m))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -213,19 +216,19 @@ fun RescheduleDialog(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outline)
+                    .background(DarkThemeColors.DialogBackground)
+                    .border(1.dp, DarkThemeColors.Border)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(24.dp)
                 ) {
-                Text(
-                    text = "custom duration",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                    Text(
+                        text = "custom duration",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = DarkThemeColors.TextPrimary
+                    )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -235,7 +238,7 @@ fun RescheduleDialog(
                     ) {
                         Box(
                             modifier = Modifier
-                                .border(1.dp, MaterialTheme.colorScheme.outline)
+                                .border(1.dp, DarkThemeColors.Border)
                                 .clickable {
                                     tempDuration = (tempDuration - 15).coerceAtLeast(15)
                                 }
@@ -244,25 +247,25 @@ fun RescheduleDialog(
                             Text(
                                 text = "-",
                                 style = MaterialTheme.typography.titleLarge,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = DarkThemeColors.TextPrimary
                             )
                         }
 
                         Box(
                             modifier = Modifier
-                                .border(1.dp, MaterialTheme.colorScheme.outline)
+                                .border(1.dp, DarkThemeColors.Border)
                                 .padding(horizontal = 18.dp, vertical = 12.dp)
                         ) {
                             Text(
                                 text = formatDuration(tempDuration),
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = DarkThemeColors.TextPrimary
                             )
                         }
 
                         Box(
                             modifier = Modifier
-                                .border(1.dp, MaterialTheme.colorScheme.outline)
+                                .border(1.dp, DarkThemeColors.Border)
                                 .clickable {
                                     tempDuration = (tempDuration + 15).coerceAtMost(240)
                                 }
@@ -271,18 +274,18 @@ fun RescheduleDialog(
                             Text(
                                 text = "+",
                                 style = MaterialTheme.typography.titleLarge,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = DarkThemeColors.TextPrimary
                             )
                         }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                Text(
-                    text = "adjust in 15-minute steps.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                    Text(
+                        text = "adjust in 15-minute steps.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DarkThemeColors.TextSecondary
+                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
